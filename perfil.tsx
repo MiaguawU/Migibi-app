@@ -3,6 +3,8 @@ import { DatePickerView } from '@ant-design/react-native'
 import React, { useState } from 'react'
 import { ScrollView, Text } from 'react-native'
 import { useNavigation } from '@react-navigation/native'; // Importar el hook de navegación
+import { createStackNavigator } from '@react-navigation/stack';  
+import { NavigationContainer } from '@react-navigation/native'; 
 
 const ahora = new Date()
 
@@ -127,4 +129,5 @@ const diaSemanaToEs = (diaSemana: number) => {
     default:
       return diaSemana
   }
-}
+};
+

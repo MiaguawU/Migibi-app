@@ -5,7 +5,7 @@ import { Calendar } from 'react-native-calendars';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from './types';
-
+import { createStackNavigator } from '@react-navigation/stack';
 
 type PlanScreenNavigationProp = NavigationProp<RootStackParamList, 'Plan'>;
 
@@ -38,7 +38,6 @@ export default function Plan() {
       },
       headerRight: () => (
         <View style={sHead.headerButtonsContainer}>
-          
           <View style={sHead.naveAl}  >
           <Pressable onPress={() => navigateToScreen('Hoy')} >
             <Image source={require('./img/bHoy1.png')} style={sHead.headerIcon} />
@@ -53,14 +52,10 @@ export default function Plan() {
             <Image source={require('./img/bRefri1.png')} style={sHead.headerIcon} />
           </Pressable>
           </View>
-
           <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs} >
             <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
           </Pressable>
-          
         </View>
-        
-        
       ),
     });
   }, [navigation]);
