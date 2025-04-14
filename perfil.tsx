@@ -1,133 +1,174 @@
-import type { DatePickerFilter } from '@ant-design/react-native'
-import { DatePickerView } from '@ant-design/react-native'
-import React, { useState } from 'react'
-import { ScrollView, Text } from 'react-native'
-import { useNavigation } from '@react-navigation/native'; // Importar el hook de navegación
-import { createStackNavigator } from '@react-navigation/stack';  
-import { NavigationContainer } from '@react-navigation/native'; 
+import React, { useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import { WhiteSpace } from '@ant-design/react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from './types';
+import { AntDesign } from '@expo/vector-icons';
 
-const ahora = new Date()
+type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Perfil'>;
 
-export default function Perfil() {
-    const navigation = useNavigation(); // Inicializar la navegación
-    const [modalVisible, setModalVisible] = useState(false);
-  
-    React.useLayoutEffect(() => {
-      navigation.setOptions({
-        headerBackTitleVisible: false,
-        headerTintColor: '#40632F', 
-      });
-    }, [navigation]);
-  
-    const toggleModal = () => {
-      setModalVisible(!modalVisible);
-    };
-    const [valor, setValor] = useState(ahora);
-  
-    return (
-        <ScrollView nestedScrollEnabled>
-        <Text style={{ margin: 16 }}>Uso Básico</Text>
-        <DatePickerView defaultValue={ahora} />
-  
-        <Text style={{ margin: 16 }}>Modo Controlado</Text>
-        <DatePickerView
-          value={valor}
-          onChange={(val: Date) => {
-            setValor(val)
-            console.log('onChange', val)
-          }}
-        />
-  
-        <Text style={{ margin: 16 }}>Renderizado Personalizado de Cada Columna</Text>
-        <DatePickerView defaultValue={ahora} renderLabel={etiquetaRenderer} />
-  
-        <Text style={{ margin: 16 }}>Selector de Semana</Text>
-        <DatePickerView
-          onChange={(val: Date) => console.log('onChange', val)}
-          precision="week-day"
-          defaultValue={ahora}
-          renderLabel={etiquetaSemanaRenderer}
-        />
-  
-        <Text style={{ margin: 16 }}>Filtrar Horas Disponibles</Text>
-        <DatePickerView
-          defaultValue={ahora}
-          precision="hour"
-          renderLabel={etiquetaRenderer}
-          filter={filtroFecha}
-        />
-      </ScrollView>
-    );
-  }
-  
+export default function ProfileScreen() {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
 
-const etiquetaRenderer = (tipo: string, dato: number) => {
-  switch (tipo) {
-    case 'year':
-      return dato + ' año'
-    case 'month':
-      return dato + ' mes'
-    case 'day':
-      return dato + ' día'
-    case 'hour':
-      return dato + ' hora'
-    case 'minute':
-      return dato + ' min'
-    case 'second':
-      return dato + ' seg'
-    default:
-      return dato
-  }
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
+
+  return (
+    <View style={styles.background}>
+      {/* Flecha de retroceso */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <AntDesign name="arrowleft" size={24} color="#40632F" />
+      </TouchableOpacity>
+
+      {/* Botón "Cerrar Sesión" */}
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={() => navigation.navigate('Omg')}
+      >
+        <Text style={styles.logoutText}>Cerrar Sesión</Text>
+      </TouchableOpacity>
+
+      <View style={styles.container}>
+        {/* Imagen "bPerfil" */}
+        <Image
+          source={require('./img/bPerfil.png')}
+          style={styles.profileIcon}
+          resizeMode="contain"
+        />
+        <WhiteSpace size="lg" />
+
+        {/* Texto "Usuario" y "MasIcon" al lado */}
+        <View style={styles.userContainer}>
+          <Text style={styles.title}>Usuario</Text>
+          <Image
+            source={require('./img/MasIcon.png')}
+            style={styles.masIcon}
+            resizeMode="contain"
+          />
+        </View>
+        <WhiteSpace size="xl" />
+
+        {/* Contenedor 1: Tipos de alimentos (con botón "Ver") */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.label}>Tipos de alimentos que no puedo comer</Text>
+          <TouchableOpacity
+            style={styles.viewButton}
+            onPress={() => navigation.navigate('Nocome')}
+          >
+            <Text style={styles.viewButtonText}>Ver</Text>
+          </TouchableOpacity>
+        </View>
+        <WhiteSpace size="lg" />
+
+        {/* Contenedor 2: Cantidad de personas */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.label}>Cantidad de personas que viven conmigo</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Escribe aquí..."
+            placeholderTextColor="#888"
+            keyboardType="numeric"
+          />
+        </View>
+      </View>
+    </View>
+  );
 }
 
-const etiquetaSemanaRenderer = (tipo: string, dato: number) => {
-  switch (tipo) {
-    case 'year':
-      return dato + ' año'
-    case 'week':
-      return dato + ' semana'
-    case 'week-day':
-      return diaSemanaToEs(dato)
-    default:
-      return dato
-  }
-}
-
-const filtroFecha: DatePickerFilter = {
-  day: (_val, { date }) => {
-    // Excluir todos los fines de semana
-    if (date.getDay() > 5 || date.getDay() === 0) {
-      return false
-    }
-    return true
+const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#fff',
   },
-  hour: (val: number) => {
-    // Solo permitir horas de 14 a 18
-    if (val < 14 || val > 18) {
-      return false
-    }
-    return true
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 1,
   },
-}
-
-const diaSemanaToEs = (diaSemana: number) => {
-  switch (diaSemana) {
-    case 1:
-      return 'Lun'
-    case 2:
-      return 'Mar'
-    case 3:
-      return 'Mié'
-    case 4:
-      return 'Jue'
-    case 5:
-      return 'Vie'
-    case 6:
-      return 'Sáb'
-    case 7:
-      return 'Dom'
-    default:
-      return diaSemana
-  }
-};
-
+  logoutButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+    borderColor: 'black',
+    borderWidth: 2,
+    backgroundColor: '#FFD39E',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  logoutText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileIcon: {
+    maxWidth: '80%',
+    maxHeight: '40%',
+  },
+  userContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  masIcon: {
+    width: 30,
+    height: 30,
+    marginLeft: 10,
+  },
+  infoContainer: {
+    width: '80%',
+    backgroundColor: '#CAE2B5',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 16,
+    color: 'black',
+    marginBottom: 10,
+  },
+  input: {
+    width: '100%',
+    height: 40,
+    backgroundColor: 'white',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    fontSize: 16,
+  },
+  viewButton: {
+    backgroundColor: 'white',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: 10,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewButtonText: {
+    fontSize: 16,
+    color: '#000',
+  },
+});

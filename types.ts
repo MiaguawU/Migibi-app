@@ -7,5 +7,6 @@ export type RootStackParamList = {
     Hoy: undefined;
     Recetas: undefined;
     Refri: undefined;
+    Iniciar: undefined;
   };
   

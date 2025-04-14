@@ -1,17 +1,16 @@
 import React, { useLayoutEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
 import { AntDesign, Feather } from '@expo/vector-icons';
 
-type RegScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reg'>;
+type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;
 
-export default function EjemploCalendarioPersonalizado() {
-  const navigation = useNavigation<RegScreenNavigationProp>();
+export default function LoginScreen() {
+  const navigation = useNavigation<IniciarScreenNavigationProp>();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -29,15 +28,17 @@ export default function EjemploCalendarioPersonalizado() {
       </TouchableOpacity>
 
       <View style={styles.container}>
-        <Image
-          source={require('./img/IconoRegistrarse.png')}
-          style={styles.icon}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>¡Regístrate!</Text>
+        {/* Espacio adicional arriba del título */}
+        <WhiteSpace size="xl" />
+        <WhiteSpace size="lg" />
+        
+        <Text style={styles.title}>¡Inicia Sesión!</Text>
+
+        {/* Triple espacio vertical */}
+        <WhiteSpace size="lg" />
+        <WhiteSpace size="lg" />
         <WhiteSpace size="lg" />
 
-        {/* Campo de Nombre */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -45,9 +46,8 @@ export default function EjemploCalendarioPersonalizado() {
             placeholderTextColor="#888"
           />
         </View>
-        <WhiteSpace size="md" />
+        <WhiteSpace size="xl" />
 
-        {/* Campo de Correo Electrónico */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -56,9 +56,8 @@ export default function EjemploCalendarioPersonalizado() {
             keyboardType="email-address"
           />
         </View>
-        <WhiteSpace size="md" />
+        <WhiteSpace size="xl" />
 
-        {/* Campo de Contraseña con ojito */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -77,36 +76,16 @@ export default function EjemploCalendarioPersonalizado() {
             />
           </TouchableOpacity>
         </View>
-        <WhiteSpace size="md" />
-
-        {/* Campo de Repetir Contraseña con ojito */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Repetir Contraseña"
-            placeholderTextColor="#888"
-            secureTextEntry={!showConfirmPassword}
-          />
-          <TouchableOpacity
-            style={styles.eyeIcon}
-            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            <Feather
-              name={showConfirmPassword ? 'eye' : 'eye-off'}
-              size={20}
-              color="#888"
-            />
-          </TouchableOpacity>
-        </View>
-        <WhiteSpace size="md" />
+        <WhiteSpace size="xl" />
 
         <Button
           style={styles.button}
-          onPress={() => navigation.navigate('Refri')}
+          onPress={() => navigation.navigate('Plan')}
         >
-          Registrarme
+          Iniciar Sesión
         </Button>
-        <WhiteSpace size="md" />
+        <WhiteSpace size="xl" />
+
         <Image
           source={require('./img/IconoGoogle.png')}
           style={styles.googleIcon}
@@ -134,10 +113,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  icon: {
-    maxWidth: '80%',
-    maxHeight: '40%',
   },
   title: {
     fontSize: 36,
@@ -172,6 +147,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '70%',
     height: 50,
+    justifyContent: 'center',
   },
   googleIcon: {
     width: 75,

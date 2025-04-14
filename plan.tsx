@@ -1,69 +1,34 @@
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, Pressable, View, Image, TextInput, ScrollView } from 'react-native';
-import { Button, Provider } from '@ant-design/react-native';
-import { Calendar } from 'react-native-calendars';
-import DropDownPicker from 'react-native-dropdown-picker';
+import {
+  StyleSheet,
+  Text,
+  Pressable,
+  View,
+  Image,
+  TextInput,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
+import { Provider } from '@ant-design/react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { RootStackParamList } from './types';
-import { createStackNavigator } from '@react-navigation/stack';
+
+// Define el tipo de las pantallas para la navegación
+type RootStackParamList = {
+  Hoy: undefined;
+  Plan: undefined;
+  Recetas: undefined;
+  Refri: undefined;
+  Perfil: undefined;
+};
+
+// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type PlanScreenNavigationProp = NavigationProp<RootStackParamList, 'Plan'>;
 
 export default function Plan() {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
-  const [selectedPorDate, setSelectedPorDate] = useState<string | undefined>(undefined); // Fecha para "Por"
-  const [showCalendar, setShowCalendar] = useState(false);
   const navigation = useNavigation<PlanScreenNavigationProp>();
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState('option1');
-  const [items, setItems] = useState([
-    { label: 'Opción 1', value: 'option1' },
-    { label: 'Opción 2', value: 'option2' },
-    { label: 'Opción 3', value: 'option3' },
-  ]);
-  const [porciones, setPorciones] = useState('');  // Estado para el valor de las porciones
-
-  const navigateToScreen = (screenName: keyof RootStackParamList) => {
-    navigation.navigate(screenName);
-  };
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerBackTitleVisible: true, // Mantiene el botón de regresar visible
-      headerTintColor: '#40632F',
-      headerTitle: '', // Oculta el título de "Plan"
-      headerStyle: {
-        height: 150, // Aumenta la altura de la cabecera a 100
-      },
-      headerRight: () => (
-        <View style={sHead.headerButtonsContainer}>
-          <View style={sHead.naveAl}  >
-          <Pressable onPress={() => navigateToScreen('Hoy')} >
-            <Image source={require('./img/bHoy1.png')} style={sHead.headerIcon} />
-          </Pressable>
-          <Pressable onPress={() => navigateToScreen('Plan')}>
-            <Image source={require('./img/bPlan2.png')} style={sHead.headerIcon} />
-          </Pressable>
-          <Pressable onPress={() => navigateToScreen('Recetas')}>
-            <Image source={require('./img/bRecetas1.png')} style={sHead.headerIcon} />
-          </Pressable>
-          <Pressable onPress={() => navigateToScreen('Refri')}>
-            <Image source={require('./img/bRefri1.png')} style={sHead.headerIcon} />
-          </Pressable>
-          </View>
-          <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs} >
-            <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
-          </Pressable>
-        </View>
-      ),
-    });
-  }, [navigation]);
-
-  const toggleModal = () => {
-    setModalVisible(!modalVisible);
-  };
-  // Estados para controlar si cada botón ha sido presionado
+  // Estado para los botones horizontales
   const [selectedButtons, setSelectedButtons] = useState({
     faltante: false,
     caducar: false,
@@ -72,122 +37,53 @@ export default function Plan() {
     cena: false,
   });
 
-  const onDayPress = (day: any) => {
-    setSelectedDate(day.dateString);
-    setShowCalendar(false);
+  const navigateToScreen = (screenName: keyof RootStackParamList) => {
+    navigation.navigate(screenName);
   };
 
-  const onPorDayPress = (day: any) => {
-    setSelectedPorDate(day.dateString);
-    setShowCalendar(false);
-  };
-
-  
-
-  const markedDates = selectedDate
-    ? {
-        [selectedDate]: { selected: true, selectedColor: '#CEDFAD' },
-      }
-    : {};
-
-  const markedPorDates = selectedPorDate
-    ? {
-        [selectedPorDate]: { selected: true, selectedColor: '#CEDFAD' },
-      }
-    : {};
-
-  
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerBackTitleVisible: true,
+      headerTintColor: '#40632F',
+      headerTitle: '',
+      headerStyle: {
+        height: SCREEN_HEIGHT * 0.15,
+      },
+      headerRight: () => (
+        <View style={sHead.headerButtonsContainer}>
+          <View style={sHead.naveAl}>
+            <Pressable onPress={() => navigateToScreen('Hoy')}>
+              <Image source={require('./img/bHoy1.png')} style={sHead.headerIcon} />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Plan')}>
+              <Image source={require('./img/bPlan2.png')} style={sHead.headerIcon} />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Recetas')}>
+              <Image source={require('./img/bRecetas1.png')} style={sHead.headerIcon} />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Refri')}>
+              <Image source={require('./img/bRefri1.png')} style={sHead.headerIcon} />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
+              <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
+            </Pressable>
+          </View>
+        </View>
+      ),
+    });
+  }, [navigation]);
 
   // Función para manejar el cambio de imagen al presionar un botón
   const handlePress = (button: keyof typeof selectedButtons) => {
     setSelectedButtons((prevState) => ({
       ...prevState,
-      [button]: !prevState[button], // Cambia el estado de la imagen (presionado o no)
+      [button]: !prevState[button],
     }));
   };
 
   return (
     <Provider>
-      <View style={styles.centeredView}>
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={toggleModal}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.dragIndicator} />
-
-              {/* Botón de Cerrar */}
-              <Pressable style={styles.closeButtonContainer} onPress={toggleModal}>
-                <Image
-                  source={require('./img/AbajoF.png')} // Ruta de la imagen
-                  style={styles.closeButtonImage}
-                />
-              </Pressable>
-
-              {/* Selector de Fecha y Botón */}
-              <View style={styles.dateSelectorContainer}>
-                <Text style={styles.dateText}>Fecha</Text>
-                <Text style={styles.selectedDateText}>
-                  {selectedDate ? selectedDate : 'No seleccionada'}
-                </Text>
-                <Button onPress={() => setShowCalendar(true)} style={bIn.selectButton}>
-                  <Image
-                    source={require('./img/CalenIcon.png')} 
-                  />
-                </Button>
-              </View>
-
-              {/* Calendario */}
-              {showCalendar && (
-                <Calendar
-                  onDayPress={onDayPress}
-                  markedDates={markedDates}
-                  theme={{
-                    selectedDayBackgroundColor: '#3E7E1E',
-                    todayTextColor: '#CEDFAD',
-                    dayTextColor: '#3E7E1E',
-                    arrowColor: '#3E7E1E',
-                    monthTextColor: '#3E7E1E',
-                    textSectionTitleColor: '#9FAF7D',
-                  }}
-                />
-              )}
-
-              {/* Dropdown Selector */}
-              <View style={styles.selectContainer}>
-                <View style={styles.dropdownWrapper}>
-                  <Text style={styles.modalText}>Seleccionar Opción</Text>
-                  <DropDownPicker
-                    open={open}
-                    value={value}
-                    items={items}
-                    setOpen={setOpen}
-                    setValue={setValue}
-                    setItems={setItems}
-                    containerStyle={styles.dropdownContainer}
-                    style={styles.dropdownStyle}
-                  />
-                </View>
-              </View>
-
-              {/* Input para las porciones */}
-              <View style={styles.porcionesContainer}>
-                <Text style={styles.modalText}>Porciones</Text>
-                <TextInput
-                  style={styles.input}
-                  value={porciones}
-                  onChangeText={setPorciones}
-                  keyboardType="numeric"
-                  placeholder="Porciones"
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
-
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Botones Horizontales */}
         <View style={bIn.botonesIn}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
@@ -196,7 +92,7 @@ export default function Plan() {
                 source={selectedButtons.faltante ? require('./img/biFal2.png') : require('./img/biFal.png')}
                 style={bIn.imgbi}
               />
-              <Text style={bIn.textbi} >Faltante</Text>
+              <Text style={bIn.textbi}>Faltante</Text>
             </Pressable>
             <Pressable style={bIn.button} onPress={() => handlePress('caducar')}>
               <Image
@@ -229,72 +125,86 @@ export default function Plan() {
           </ScrollView>
         </View>
 
-        <View>
-          <View style={bIn.scrollContainer}>
-            <Pressable>
+        {/* Panel deslizable */}
+        <View style={styles.panel}>
+          <ScrollView contentContainerStyle={styles.panelScroll}>
+            {/* Fila superior con imágenes y área de texto */}
+            <View style={styles.panelHeader}>
               <Image
-                source={require('./img/fIzq.png') }
-                style={bIn.imgbi}
+                source={require('./img/fIzq.png')}
+                style={styles.panelIcon}
+                resizeMode="contain"
               />
-            </Pressable>
-            <Text style={styles.selectedDateText}>
-              {selectedDate ? selectedDate : 'Jueves 4 de Noviembre'}
-            </Text>
-            <Pressable onPress={() => setShowCalendar(true)} style={bIn.selectButton}>
-              <Text>Por</Text>
-            </Pressable>
-            <Pressable>
+              <TextInput
+                style={styles.panelTextInput}
+                placeholder="Escribe aquí..."
+                placeholderTextColor="#888"
+              />
               <Image
-                source={require('./img/fDerecha.png') }
-                style={bIn.imgbi}
-              />
-            </Pressable>
-          </View>
-
-          {/* Calendario flotante */}
-          {showCalendar && (
-            <View style={styles.calendarContainer}>
-              <Calendar
-                onDayPress={onPorDayPress}
-                markedDates={markedPorDates}
-                theme={{
-                  selectedDayBackgroundColor: '#3E7E1E',
-                  todayTextColor: '#CEDFAD',
-                  dayTextColor: '#3E7E1E',
-                  arrowColor: '#3E7E1E',
-                  monthTextColor: '#3E7E1E',
-                  textSectionTitleColor: '#9FAF7D',
-                }}
+                source={require('./img/fDerecha.png')}
+                style={styles.panelIcon}
+                resizeMode="contain"
               />
             </View>
-          )}
+
+            {/* Contenido estático del contenedor */}
+            <View style={styles.inputColumn}>
+              <View style={styles.sartenRow}>
+                <Image
+                  source={require('./img/Sarten.png')}
+                  style={styles.sartenIcon}
+                  resizeMode="contain"
+                />
+                <TextInput
+                  style={styles.inputMiddle}
+                  placeholder="Editar..."
+                  placeholderTextColor="#888"
+                />
+                <View style={styles.iconContainer}>
+                  <Image
+                    source={require('./img/Editar.png')}
+                    style={styles.editIcon}
+                    resizeMode="contain"
+                  />
+                  <Pressable style={styles.trashButton}>
+                    <Image
+                      source={require('./img/Basura.png')}
+                      style={styles.trashIcon}
+                      resizeMode="contain"
+                    />
+                  </Pressable>
+                </View>
+              </View>
+              <TextInput
+                style={styles.inputSmall}
+                placeholder="Porciones: "
+                placeholderTextColor="#888"
+              />
+            </View>
+          </ScrollView>
         </View>
 
-        <View style={styles.botAbajo} >
-          <Pressable style={styBA.botAbS} >
-            <Image  
+        {/* Imágenes inferiores */}
+        <View style={styles.bottomIcons}>
+          <View style={styles.bottomLeftIcons}>
+            <Image
               source={require('./img/bComp.png')}
-              style={styBA.imgbA}
+              style={styles.bottomIcon}
+              resizeMode="contain"
             />
-          </Pressable>
-          <Pressable style={styBA.botAbS} >
-            <Image  
+            <Image
               source={require('./img/bDesc.png')}
-              style={styBA.imgbA}
+              style={styles.bottomIcon}
+              resizeMode="contain"
             />
-          </Pressable>
-          <Pressable style={styBA.botAbS2}>
-            <Image  
-              source={require('./img/bV2.png')}
-              style={styBA.imgbA}
-            />
-          </Pressable>
+          </View>
+          <Image
+            source={require('./img/bV2.png')}
+            style={styles.bottomIcon}
+            resizeMode="contain"
+          />
         </View>
-
-        <Pressable style={styles.bottomBar} onPress={toggleModal}>
-          <Image source={require('./img/MasIcon.png')}  />
-        </Pressable>
-      </View>
+      </ScrollView>
     </Provider>
   );
 }
@@ -303,230 +213,166 @@ const sHead = StyleSheet.create({
   headerButtonsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.15,
   },
   headerIcon: {
-    width: 69,
-    height: 56,
-    marginHorizontal: 5,
+    width: SCREEN_WIDTH * 0.15,
+    height: SCREEN_HEIGHT * 0.07,
+    marginHorizontal: SCREEN_WIDTH * 0.01,
     resizeMode: 'contain',
-    left:4,
   },
   headerIcon2: {
-    width: 72,
-    height: 67,
-    marginHorizontal: 5,
+    width: SCREEN_WIDTH * 0.16,
+    height: SCREEN_HEIGHT * 0.08,
     resizeMode: 'contain',
-    left:20,
   },
   headerIconEs: {
-    position: 'absolute',
-    zIndex: 10,
-    marginHorizontal: 5,
-    right: 10,
-    bottom: -65,
+    marginHorizontal: SCREEN_WIDTH * 0.01,
   },
-
   naveAl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
+    justifyContent: 'space-between',
     backgroundColor: '#9FAF7D',
-    position: 'absolute',
-    right: -28,
-    top: 24,
-    width: 420,
-  }
-})
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.07,
+    top: SCREEN_HEIGHT * 0.06,
+    paddingHorizontal: SCREEN_WIDTH * 0.02,
+  },
+});
 
 const bIn = StyleSheet.create({
   button: {
     alignItems: 'center',
-    marginHorizontal: 10,
+    marginHorizontal: SCREEN_WIDTH * 0.02,
   },
   imgbi: {
-    width: 66,
-    height: 66,
+    width: SCREEN_WIDTH * 0.15,
+    height: SCREEN_WIDTH * 0.15,
   },
   textbi: {
     fontFamily: 'Jomhuria',
-    fontSize: 25,
+    fontSize: SCREEN_WIDTH * 0.06,
     color: '#6B8762',
   },
   botonesIn: {
-    marginTop: 20,
+    marginTop: SCREEN_HEIGHT * 0.04,
+    marginBottom: SCREEN_HEIGHT * 0.015,
     width: '100%',
-    bottom: 220,
-    position: 'relative',
   },
   scrollContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
+    paddingHorizontal: SCREEN_WIDTH * 0.02,
   },
-  selectButton: {
-    marginLeft: 10,
-  },
-})
-
-const PlanS = StyleSheet.create({
-
-}) 
-
-const styBA = StyleSheet.create({
-  botAbS:{
-    marginRight: 5, 
-    marginLeft:5,
-    right:66,
-    top: 190,
-  },
-  botAbS2:{
-    marginRight: 10, 
-    marginLeft:40,
-    left:70,
-    top: 190,
-  },
-  imgbA: {
-    width: 59,
-    height: 44,
-  }
-})
+});
 
 const styles = StyleSheet.create({
-  centeredView: {
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingVertical: SCREEN_HEIGHT * 0.02,
+  },
+  panel: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '90%',
+    backgroundColor: '#CAE2B5',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    marginTop: SCREEN_HEIGHT * 0.015,
+    marginBottom: SCREEN_HEIGHT * 0.02,
   },
-  modalOverlay: {
+  panelScroll: {
+    padding: SCREEN_WIDTH * 0.04,
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SCREEN_HEIGHT * 0.02,
+  },
+  panelIcon: {
+    width: SCREEN_WIDTH * 0.060,
+    height: SCREEN_WIDTH * 0.1,
+  },
+  panelTextInput: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    height: SCREEN_HEIGHT * 0.05,
+    backgroundColor: '#CAE2B5',
+    borderColor: '#CAE2B5',
+    borderWidth: 2,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.04,
+    marginHorizontal: SCREEN_WIDTH * 0.02,
   },
-  modalContainer: {
+  inputColumn: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  sartenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SCREEN_HEIGHT * 0.005,
+    width: '100%',
+  },
+  sartenIcon: {
+    width: SCREEN_WIDTH * 0.1,
+    height: SCREEN_WIDTH * 0.1,
+    marginRight: SCREEN_WIDTH * 0.02,
+  },
+  inputMiddle: {
+    width: SCREEN_WIDTH * 0.55,
+    height: SCREEN_HEIGHT * 0.05,
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 10,
-    height: '80%',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: SCREEN_WIDTH * 0.05,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.04,
   },
-  dragIndicator: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#ccc',
-    borderRadius: 3,
-    marginBottom: 15,
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  selectedDateText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 10,
-    marginRight: 10,
-  },
-  dateSelectorContainer: {
+  iconContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-    top: 15,
   },
-  botAbajo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+  editIcon: {
+    width: SCREEN_WIDTH * 0.05,
+    height: SCREEN_WIDTH * 0.05,
+    marginRight: SCREEN_WIDTH * 0.02,
   },
-  
-  dateText: {
-    fontSize: 16,
-    color: '#333',
+  trashButton: {},
+  trashIcon: {
+    width: SCREEN_WIDTH * 0.05,
+    height: SCREEN_WIDTH * 0.05,
   },
-  
-  bottomBar: {
-    backgroundColor: '#CEDFAC',
-    height: 40,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 0,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  calendarContainer: {
-    position: 'absolute',
-    top: 70,
-    zIndex: 1000,
-    right: 10,
+  inputSmall: {
+    width: SCREEN_WIDTH * 0.3,
+    height: SCREEN_HEIGHT * 0.03,
     backgroundColor: 'white',
-    paddingTop: 10,
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.03,
+    marginLeft: SCREEN_WIDTH * 0.12,
   },
-  bottomBarText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  
-  
-  
-  closeButtonContainer: {
-    position: 'absolute',
-    top: 20,
-    right: 25,
-    width: 30,
-    height: 30,
-  },
-  closeButtonImage: {
-    width: '70%',
-    height: '70%',
-    resizeMode: 'contain',
-  },
-  selectContainer: {
-    marginTop: 20,
-    justifyContent: 'flex-start',
-    width: '100%',
-  },
-  dropdownWrapper: {
+  bottomIcons: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
-  },
-  dropdownContainer: {
-    width: '50%',
-  },
-  dropdownStyle: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-  },
-  porcionesContainer: {
-    marginTop: 20,
-    width: '100%',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    width: '90%',
+    marginBottom: SCREEN_HEIGHT * 0.02,
+  },
+  bottomLeftIcons: {
     flexDirection: 'row',
   },
-  
-  input: {
-    width: '60%',
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 10,
-    marginTop: 10,
+  bottomIcon: {
+    width: SCREEN_WIDTH * 0.12,
+    height: SCREEN_WIDTH * 0.12,
+    marginRight: SCREEN_WIDTH * 0.02,
   },
-  
 });

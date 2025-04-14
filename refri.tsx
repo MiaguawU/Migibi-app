@@ -1,5 +1,14 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Pressable, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Pressable,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 
@@ -12,12 +21,15 @@ type RootStackParamList = {
   Perfil: undefined;
 };
 
+// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 const EjemploCalendarioPersonalizado = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [showCamera, setShowCamera] = useState(false); // Estado para la cámara "Camara"
-  const [showScanner, setShowScanner] = useState(false); // Estado para la cámara "Scaner"
-  const [ingredientes, setIngredientes] = useState<number[]>([0]); // Estado para manejar los contenedores "nuevoIngrediente"
+  const [showCamera, setShowCamera] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [ingredientes, setIngredientes] = useState<number[]>([0]);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const navigateToScreen = (screenName: keyof RootStackParamList) => {
@@ -28,9 +40,9 @@ const EjemploCalendarioPersonalizado = () => {
     navigation.setOptions({
       headerBackTitleVisible: false,
       headerTintColor: '#40632F',
-      headerTitle: '', // Oculta el título por defecto
+      headerTitle: '',
       headerStyle: {
-        height: 150, // Aumenta la altura de la cabecera
+        height: SCREEN_HEIGHT * 0.15,
       },
       headerRight: () => (
         <View style={sHead.headerButtonsContainer}>
@@ -39,18 +51,18 @@ const EjemploCalendarioPersonalizado = () => {
               <Image source={require('./img/bHoy1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image source={require('./img/bPlan2.png')} style={sHead.headerIcon} />
+              <Image source={require('./img/bPlan1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
               <Image source={require('./img/bRecetas1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image source={require('./img/bRefri2.png')} style={sHead.headerIconActive} />
+              <Image source={require('./img/bRefri2.png')} style={sHead.headerIcon} />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
+              <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
             </Pressable>
           </View>
-          <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-            <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
-          </Pressable>
         </View>
       ),
     });
@@ -66,44 +78,39 @@ const EjemploCalendarioPersonalizado = () => {
     alert(`Product code ${data} has been scanned!`);
   };
 
-  // Función para agregar un nuevo contenedor "nuevoIngrediente"
   const addNuevoIngrediente = () => {
     setIngredientes([...ingredientes, ingredientes.length]);
   };
 
-  // Función para eliminar un contenedor "nuevoIngrediente" por su índice
   const removeNuevoIngrediente = (index: number) => {
     setIngredientes(ingredientes.filter((_, i) => i !== index));
   };
 
   const addExpiredProduct = () => {
     setScanned(false);
-    setShowCamera(false); // Cierra la cámara "Camara"
-    setShowScanner(false); // Cierra la cámara "Scaner"
-    addNuevoIngrediente(); // Agrega un nuevo contenedor al hacer clic en "MasIcon.png"
+    setShowCamera(false);
+    setShowScanner(false);
+    addNuevoIngrediente();
   };
 
-  // Función para abrir la cámara "Camara"
   const openCamera = () => {
     if (hasPermission === true) {
       setShowCamera(true);
-      setScanned(false); // Resetea el estado de escaneo
+      setScanned(false);
     } else {
       alert('No se tiene permiso para usar la cámara');
     }
   };
 
-  // Función para abrir la cámara "Scaner"
   const openScanner = () => {
     if (hasPermission === true) {
       setShowScanner(true);
-      setScanned(false); // Resetea el estado de escaneo
+      setScanned(false);
     } else {
       alert('No se tiene permiso para usar la cámara');
     }
   };
 
-  // Si showCamera es true, muestra la cámara "Camara" en pantalla completa
   if (showCamera) {
     if (hasPermission === null) {
       return <Text>Requesting camera permission</Text>;
@@ -120,7 +127,10 @@ const EjemploCalendarioPersonalizado = () => {
           barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
         />
         {scanned && (
-          <TouchableOpacity style={styles.scanAgainButtonFull} onPress={() => setScanned(false)}>
+          <TouchableOpacity
+            style={styles.scanAgainButtonFull}
+            onPress={() => setScanned(false)}
+          >
             <Text style={styles.scanAgainText}>Scan Again</Text>
           </TouchableOpacity>
         )}
@@ -128,16 +138,12 @@ const EjemploCalendarioPersonalizado = () => {
           <Text style={styles.closeText}>Cerrar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButtonFull} onPress={addExpiredProduct}>
-          <Image
-            source={require('./img/MasIcon.png')} // Asegúrate de que la ruta sea correcta
-            style={styles.addIcon}
-          />
+          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Si showScanner es true, muestra la cámara "Scaner" en pantalla completa
   if (showScanner) {
     if (hasPermission === null) {
       return <Text>Requesting camera permission</Text>;
@@ -154,7 +160,10 @@ const EjemploCalendarioPersonalizado = () => {
           barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
         />
         {scanned && (
-          <TouchableOpacity style={styles.scanAgainButtonFull} onPress={() => setScanned(false)}>
+          <TouchableOpacity
+            style={styles.scanAgainButtonFull}
+            onPress={() => setScanned(false)}
+          >
             <Text style={styles.scanAgainText}>Scan Again</Text>
           </TouchableOpacity>
         )}
@@ -162,24 +171,19 @@ const EjemploCalendarioPersonalizado = () => {
           <Text style={styles.closeText}>Cerrar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButtonFull} onPress={addExpiredProduct}>
-          <Image
-            source={require('./img/MasIcon.png')} // Asegúrate de que la ruta sea correcta
-            style={styles.addIcon}
-          />
+          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Vista principal con el contenedor de texto e iconos
   return (
     <View style={styles.container}>
-      {/* Panel con ScrollView para los contenedores "nuevoIngrediente" */}
       <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
         {ingredientes.map((_, index) => (
           <View key={index} style={styles.nuevoIngrediente}>
             <Image
-              source={require('./img/ImgDefecto.png')} // Imagen a la izquierda
+              source={require('./img/ImgDefecto.png')}
               style={styles.defaultImage}
             />
             <View style={styles.textWrapper}>
@@ -187,37 +191,23 @@ const EjemploCalendarioPersonalizado = () => {
               <Text style={styles.porciones}>Porciones/10</Text>
             </View>
             <TouchableOpacity onPress={() => removeNuevoIngrediente(index)}>
-              <Image
-                source={require('./img/Basura.png')} // Imagen a la derecha
-                style={styles.trashImage}
-              />
+              <Image source={require('./img/Basura.png')} style={styles.trashImage} />
             </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
 
-      {/* Contenedor para los iconos, superpuesto al panel */}
       <View style={styles.bottomIconsContainer}>
         <View style={styles.leftIcons}>
           <TouchableOpacity style={styles.iconButton} onPress={openCamera}>
-            <Image
-              source={require('./img/Camara.png')} // Asegúrate de que la ruta sea correcta
-              style={styles.cameraImage}
-            />
+            <Image source={require('./img/Camara.png')} style={styles.cameraImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={openScanner}>
-            <Image
-              source={require('./img/Scanner.png')} // Nueva imagen para "Scaner"
-              style={styles.scannerImage}
-            />
+            <Image source={require('./img/Scanner.png')} style={styles.scannerImage} />
           </TouchableOpacity>
         </View>
-
         <TouchableOpacity style={styles.addButton} onPress={addExpiredProduct}>
-          <Image
-            source={require('./img/MasIcon.png')} // Asegúrate de que la ruta sea correcta
-            style={styles.addIcon}
-          />
+          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
         </TouchableOpacity>
       </View>
     </View>
@@ -227,63 +217,65 @@ const EjemploCalendarioPersonalizado = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 20,
-    padding: 20,
+    marginTop: SCREEN_HEIGHT * 0.04, // Aumentado de 0.02 a 0.04 para más separación
+    padding: SCREEN_WIDTH * 0.05,
   },
   fullScreenBox: {
     flex: 1,
     backgroundColor: '#CAE2B5',
-    borderRadius: 20, // Esquinas redondeadas
+    borderRadius: SCREEN_WIDTH * 0.05,
+    borderWidth: SCREEN_WIDTH * 0.005, 
+    borderColor: '#8CA966',
   },
   scrollContent: {
-    padding: 20, // Espacio en la parte superior e inferior del contenido del ScrollView
-    paddingBottom: 80, // Espacio adicional en la parte inferior para que coincida con el espacio superior
+    padding: SCREEN_WIDTH * 0.05,
+    paddingBottom: SCREEN_HEIGHT * 0.15,
   },
   nuevoIngrediente: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 20,
+    backgroundColor: '#CAE2B5',
+    borderRadius: SCREEN_WIDTH * 0.025,
+    padding: SCREEN_WIDTH * 0.025,
+    marginBottom: SCREEN_HEIGHT * 0.005,
   },
   defaultImage: {
-    width: 30,
-    height: 30,
-    marginRight: 10,
+    width: SCREEN_WIDTH * 0.08,
+    height: SCREEN_WIDTH * 0.08,
+    marginRight: SCREEN_WIDTH * 0.025,
   },
   trashImage: {
-    width: 20,
-    height: 20,
-    marginLeft: 10,
+    width: SCREEN_WIDTH * 0.05,
+    height: SCREEN_WIDTH * 0.05,
+    marginLeft: SCREEN_WIDTH * 0.025,
   },
   textWrapper: {
     flex: 1,
     justifyContent: 'center',
   },
   txtIngrediente: {
-    backgroundColor: '#E0E0E0', // Gris claro
+    backgroundColor: 'white',
     color: '#000000',
-    fontSize: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 5,
-    marginBottom: 5,
+    fontSize: SCREEN_WIDTH * 0.035,
+    paddingHorizontal: SCREEN_WIDTH * 0.02,
+    paddingVertical: SCREEN_HEIGHT * 0.005,
+    borderRadius: SCREEN_WIDTH * 0.025,
+    marginBottom: SCREEN_HEIGHT * 0.01,
   },
   porciones: {
-    backgroundColor: '#E0E0E0', // Gris claro
+    backgroundColor: '#E0E0E0',
     color: '#000000',
-    fontSize: 7,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 5,
+    fontSize: SCREEN_WIDTH * 0.018,
+    paddingHorizontal: SCREEN_WIDTH * 0.012,
+    paddingVertical: SCREEN_HEIGHT * 0.003,
+    borderRadius: SCREEN_WIDTH * 0.012,
     alignSelf: 'flex-start',
   },
   bottomIconsContainer: {
     position: 'absolute',
-    bottom: 20, // Ajustado para que esté más dentro del panel
-    left: 40, // Ajustado para alinearse con el padding del contenedor
-    right: 40, // Ajustado para alinearse con el padding del contenedor
+    bottom: SCREEN_HEIGHT * 0.03,
+    left: SCREEN_WIDTH * 0.1,
+    right: SCREEN_WIDTH * 0.1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -293,26 +285,26 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     backgroundColor: '#CEDFAD',
-    padding: 10,
-    borderRadius: 5,
-    marginRight: 10, // Espacio entre los iconos de Camara y Scaner
+    padding: SCREEN_WIDTH * 0.025,
+    borderRadius: SCREEN_WIDTH * 0.012,
+    marginRight: SCREEN_WIDTH * 0.025,
   },
   cameraImage: {
-    width: 30,
-    height: 30,
+    width: SCREEN_WIDTH * 0.08,
+    height: SCREEN_WIDTH * 0.08,
   },
   scannerImage: {
-    width: 30,
-    height: 30,
+    width: SCREEN_WIDTH * 0.08,
+    height: SCREEN_WIDTH * 0.08,
   },
   addButton: {
     backgroundColor: '#CEDFAD',
-    padding: 10,
-    borderRadius: 5,
+    padding: SCREEN_WIDTH * 0.025,
+    borderRadius: SCREEN_WIDTH * 0.012,
   },
   addIcon: {
-    width: 30,
-    height: 30,
+    width: SCREEN_WIDTH * 0.08,
+    height: SCREEN_WIDTH * 0.08,
   },
   fullScreen: {
     flex: 1,
@@ -322,35 +314,36 @@ const styles = StyleSheet.create({
   },
   scanAgainButtonFull: {
     position: 'absolute',
-    bottom: 80,
+    bottom: SCREEN_HEIGHT * 0.1,
     alignSelf: 'center',
     backgroundColor: '#CEDFAD',
-    padding: 10,
-    borderRadius: 5,
+    padding: SCREEN_WIDTH * 0.025,
+    borderRadius: SCREEN_WIDTH * 0.012,
   },
   closeButton: {
     position: 'absolute',
-    top: 40,
-    right: 20,
+    top: SCREEN_HEIGHT * 0.05,
+    right: SCREEN_WIDTH * 0.05,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 5,
+    padding: SCREEN_WIDTH * 0.025,
+    borderRadius: SCREEN_WIDTH * 0.012,
   },
   closeText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: SCREEN_WIDTH * 0.04,
   },
   addButtonFull: {
     position: 'absolute',
-    bottom: 20,
+    bottom: SCREEN_HEIGHT * 0.03,
     alignSelf: 'center',
     backgroundColor: '#CEDFAD',
-    padding: 10,
-    borderRadius: 5,
+    padding: SCREEN_WIDTH * 0.025,
+    borderRadius: SCREEN_WIDTH * 0.012,
   },
   scanAgainText: {
     color: '#40632F',
     fontWeight: 'bold',
+    fontSize: SCREEN_WIDTH * 0.04,
   },
 });
 
@@ -358,64 +351,32 @@ const sHead = StyleSheet.create({
   headerButtonsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#40632F',
-    marginRight: 20,
-    marginLeft: 10,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.15,
   },
   headerIcon: {
-    width: 69,
-    height: 56,
-    marginHorizontal: 5,
+    width: SCREEN_WIDTH * 0.15,
+    height: SCREEN_HEIGHT * 0.07,
+    marginHorizontal: SCREEN_WIDTH * 0.01,
     resizeMode: 'contain',
-    left: 4,
-  },
-  headerIconActive: {
-    width: 69,
-    height: 56,
-    marginHorizontal: 5,
-    resizeMode: 'contain',
-    left: 4,
-    borderWidth: 2,
-    borderColor: '#40632F',
   },
   headerIcon2: {
-    width: 72,
-    height: 67,
-    marginHorizontal: 5,
+    width: SCREEN_WIDTH * 0.16,
+    height: SCREEN_HEIGHT * 0.08,
     resizeMode: 'contain',
-    left: 20,
   },
   headerIconEs: {
-    position: 'absolute',
-    zIndex: 10,
-    marginHorizontal: 5,
-    right: 10,
-    bottom: -65,
+    marginHorizontal: SCREEN_WIDTH * 0.01,
   },
   naveAl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
+    justifyContent: 'space-between',
     backgroundColor: '#9FAF7D',
-    position: 'absolute',
-    right: -28,
-    top: 24,
-    width: 420,
-  },
-  headerButtonTextInactive: {
-    color: '#FFFFFF', // Color blanco para botones inactivos (Hoy, Plan, Recetas)
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  headerButtonTextActive: {
-    color: '#40632F', // Color verde oscuro para el botón activo (Refri)
-    textAlign: 'center',
-    fontSize: 16,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.07,
+    top: SCREEN_HEIGHT * 0.06,
+    paddingHorizontal: SCREEN_WIDTH * 0.02,
   },
 });
 

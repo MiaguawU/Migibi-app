@@ -7,6 +7,7 @@ import Omg from './omg';
 import Plan from './plan';
 import Perfil from './perfil';
 import Reg from './Reg';
+import Iniciar from './iniciar'
 import Hoy from './hoy';
 import Recetas from './recetas';
 import Refri from './refri';
@@ -29,6 +30,7 @@ export default function App() {
       <Stack.Navigator initialRouteName="Omg">
         <Stack.Screen name="Omg" component={Omg} />
         <Stack.Screen name="Plan" component={Plan} />
+        <Stack.Screen name="Iniciar" component={Iniciar} />
         <Stack.Screen name="Perfil" component={Perfil} />
         <Stack.Screen name="Reg" component={Reg} />
         <Stack.Screen name="Hoy" component={Hoy} />
