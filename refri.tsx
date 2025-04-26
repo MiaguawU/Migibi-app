@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect, useEffect} from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,12 @@ import {
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
+import axios from 'axios';
+import PUERTO from './config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TextInput } from 'react-native';
+import { Animated } from 'react-native';
+
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -21,6 +27,20 @@ type RootStackParamList = {
   Perfil: undefined;
 };
 
+interface CardData {
+  id: number;
+  ingrediente: string;
+  cantidad: number;
+  abreviatura: string;
+  image: string;
+  fecha: string;
+  diasRestantes: string | number;
+  caducidadPasada: boolean | null;
+  Tipo: string;
+  Activo: number;
+  Id_Usuario_Alta: number;
+}
+
 // Obtener las dimensiones de la pantalla para hacer el diseño responsivo
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -30,11 +50,149 @@ const EjemploCalendarioPersonalizado = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [ingredientes, setIngredientes] = useState<number[]>([0]);
+  const [alimentosPerecederos, setAlimentosPerecederos] = useState<CardData[]>([]);
+  const [alimentosNoPerecederos, setAlimentosNoPerecederos] = useState<CardData[]>([]);
+  const [serverMessage, setServerMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const navigateToScreen = (screenName: keyof RootStackParamList) => {
     navigation.navigate(screenName);
   };
+
+  useEffect(() => {
+    if (serverMessage !== '') {
+      const timer = setTimeout(() => setServerMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [serverMessage]);
+  
+  const eliminarAlimento = async (id: number) => {
+    try {
+      const response = await axios.put(`${PUERTO}/alimentoInactivo/${id}`, { id });
+  
+      if (response.status === 200) {
+        setServerMessage("Alimento eliminado exitosamente.");
+        datosAlimento(); 
+      } else {
+        setServerMessage("No se pudo eliminar el alimento.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar alimento:", error);
+      setServerMessage("Ocurrió un error al intentar eliminar el alimento.");
+    }
+  };
+  
+
+  const datosAlimento = async () => {
+    try {
+      const currentUserString = await AsyncStorage.getItem('currentUser');
+      if (!currentUserString) {
+        setServerMessage('No hay un usuario logueado actualmente.');
+        return;
+      }
+      const currentUser = JSON.parse(currentUserString);
+      const userId = currentUser.id;
+
+      if (isNaN(userId)) {
+        setServerMessage("ID de usuario inválido.");
+        return;
+      }
+  
+      const response = await axios.get(`${PUERTO}/alimento/${userId}`);
+      const { Perecedero, NoPerecedero } = response.data;
+  
+      if (Array.isArray(Perecedero) && Array.isArray(NoPerecedero)) {
+        const perecederos = Perecedero.filter(
+          (alimento) => alimento.Id_Usuario_Alta === userId
+        ).map((alimento) => {
+          const fechaCaducidad = alimento.Fecha_Caducidad ? new Date(alimento.Fecha_Caducidad) : null;
+          const caducidadPasada = fechaCaducidad && fechaCaducidad < new Date();
+          const diasRestantes = fechaCaducidad
+            ? Math.max(
+                0,
+                Math.ceil(
+                  (fechaCaducidad.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                )
+              )
+            : 'No definida';
+          const fecha = fechaCaducidad ? fechaCaducidad.toLocaleDateString() : 'Fecha no disponible';
+  
+          return {
+            id: alimento.id || ' ',
+            ingrediente: alimento.Nombre || ' ',
+            cantidad: alimento.Cantidad || 1,
+            abreviatura: alimento.Unidad || ' ',
+            image: alimento.Imagen ? `${PUERTO}${alimento.Imagen}` : '/imagenes/defIng.png',
+            fecha: caducidadPasada ? fecha : `${diasRestantes} días`,
+            diasRestantes,
+            caducidadPasada,
+            Tipo: alimento.Tipo_Alimento,
+            Activo: alimento.Activo,
+            Id_Usuario_Alta: alimento.Id_Usuario_Alta,
+          };
+        });
+  
+        const noPerecederos = NoPerecedero.filter(
+          (alimento) => alimento.Id_Usuario_Alta === userId
+        ).map((alimento) => ({
+          id: alimento.id || ' ',
+          ingrediente: alimento.Nombre || ' ',
+          cantidad: alimento.Cantidad || 0,
+          abreviatura: alimento.Unidad || ' ',
+          image: alimento.Imagen ? `${PUERTO}${alimento.Imagen}` : '/imagenes/defIng.png',
+          fecha: '🧀',
+          diasRestantes: 'No aplica',
+          caducidadPasada: false,
+          Tipo: alimento.Tipo_Alimento,
+          Activo: alimento.Activo,
+          Id_Usuario_Alta: alimento.Id_Usuario_Alta,
+        }));
+  
+        setAlimentosPerecederos(perecederos);
+        setAlimentosNoPerecederos(noPerecederos);
+        console.log("Alimentos obtenidos exitosamente");
+      } else {
+        throw new Error("Formato de datos inválido");
+      }
+    } catch (error) {
+      console.error("Error al obtener alimentos", error);
+      setServerMessage("No se pudo conectar con el servidor.");
+    } 
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value.toLowerCase());
+  };
+
+  useEffect(() => {
+    datosAlimento();
+  }, []);
+
+  const filteredAlimentos = [...alimentosPerecederos, ...alimentosNoPerecederos].filter((alimento) => {
+    const nombre = alimento.ingrediente.toLowerCase();
+    const tipo = alimento.Tipo.toLowerCase();
+    const cantidad = alimento.cantidad.toString();
+    return (
+      (nombre.includes(searchTerm) ||
+        tipo.includes(searchTerm) ||
+        cantidad.includes(searchTerm)) &&
+      alimento.cantidad > 0 && alimento.Activo > 0
+    );
+  });  
+  const animatedValues = filteredAlimentos.map(() => new Animated.Value(0));
+
+  useEffect(() => {
+    animatedValues.forEach((anim, index) => {
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 500,
+        delay: index * 100,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [filteredAlimentos]);
+  
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -179,22 +337,68 @@ const EjemploCalendarioPersonalizado = () => {
 
   return (
     <View style={styles.container}>
+      {serverMessage !== '' && (
+                  <Text style={styles.message}>{serverMessage}</Text>
+                )}
+        <TextInput
+            placeholder="Buscar alimento..."
+            placeholderTextColor="#555"
+            value={searchTerm}
+            onChangeText={(text) => setSearchTerm(text)}
+            style={{
+              backgroundColor: 'white',
+              borderColor: '#8CA966',
+              borderWidth: 1,
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              marginBottom: 15,
+              fontSize: 16,
+            }}
+          />
       <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
-        {ingredientes.map((_, index) => (
-          <View key={index} style={styles.nuevoIngrediente}>
-            <Image
-              source={require('./img/ImgDefecto.png')}
-              style={styles.defaultImage}
-            />
-            <View style={styles.textWrapper}>
-              <Text style={styles.txtIngrediente}>Pastel</Text>
-              <Text style={styles.porciones}>Porciones/10</Text>
-            </View>
-            <TouchableOpacity onPress={() => removeNuevoIngrediente(index)}>
-              <Image source={require('./img/Basura.png')} style={styles.trashImage} />
-            </TouchableOpacity>
-          </View>
-        ))}
+        
+
+
+{filteredAlimentos.map((alimento, index) => {
+ 
+ const translateY = animatedValues[index].interpolate({
+  inputRange: [0, 1],
+  outputRange: [20, 0],
+});
+
+const opacity = animatedValues[index];
+
+  return (
+    <Animated.View
+      key={alimento.id}
+      style={[
+        styles.nuevoIngrediente,
+        {
+          opacity,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
+      <Image source={{ uri: alimento.image }} style={styles.defaultImage} />
+      <View style={styles.textWrapper}>
+        <Text style={styles.txtIngrediente}>{alimento.ingrediente}</Text>
+        <Text style={styles.porciones}>
+          {alimento.cantidad} {alimento.abreviatura}
+        </Text>
+        <Text style={{ fontSize: 12, color: alimento.caducidadPasada ? 'red' : 'green' }}>
+          {alimento.fecha}
+        </Text>
+      </View>
+      <TouchableOpacity onPress={() => eliminarAlimento(alimento.id)}>
+        <Image source={require('./img/Basura.png')} style={styles.trashImage} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+})}
+
+
+
       </ScrollView>
 
       <View style={styles.bottomIconsContainer}>
@@ -215,6 +419,13 @@ const EjemploCalendarioPersonalizado = () => {
 };
 
 const styles = StyleSheet.create({
+  message: {
+    color: '#d9534f', // rojo para errores
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
   container: {
     flex: 1,
     marginTop: SCREEN_HEIGHT * 0.04, // Aumentado de 0.02 a 0.04 para más separación
