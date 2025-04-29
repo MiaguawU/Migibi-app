@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', // Centra los botones horizontalmente
   },
   button: {
-    backgroundColor: '#9CFF05',
+    backgroundColor: '#96F20A',
     borderColor: '#6FB800',
     borderWidth: 2,
     borderRadius: 20,

@@ -1,4 +1,5 @@
-import React, { useState, useLayoutEffect } from 'react';
+import React from 'react';
+import { useState, useLayoutEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, Dimensions, Modal, TextInput,} from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
