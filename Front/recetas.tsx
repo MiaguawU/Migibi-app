@@ -93,19 +93,19 @@ const EjemploCalendarioPersonalizado = () => {
         <View style={sHead.headerButtonsContainer}>
           <View style={sHead.naveAl}>
             <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image source={require('./img/bHoy1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bHoy1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image source={require('./img/bPlan1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bPlan1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image source={require('./img/bRecetas2.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bRecetas2.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image source={require('./img/bRefri1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bRefri1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
+              <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
             </Pressable>
           </View>
         </View>
@@ -256,17 +256,17 @@ const EjemploCalendarioPersonalizado = () => {
       <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
         {ingredientes.map((_, index) => (
           <View key={index} style={styles.nuevoIngrediente}>
-            <Image source={require('./img/ImgDefecto.png')} style={styles.defaultImage} />
+            <Image source={require('../img/ImgDefecto.png')} style={styles.defaultImage} />
             <View style={styles.textWrapper}>
               <Text style={styles.txtIngrediente}>Pastel</Text>
               <Text style={styles.porciones}>Porciones/10</Text>
             </View>
             <View style={styles.textWrappers}>
               <TouchableOpacity onPress={() => openEditModal(index)}>
-                <Image source={require('./img/Editar.png')} style={styles.trashImage} />
+                <Image source={require('../img/Editar.png')} style={styles.trashImage} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => removeNuevoIngrediente(index)}>
-                <Image source={require('./img/Basura.png')} style={styles.trashImage} />
+                <Image source={require('../img/Basura.png')} style={styles.trashImage} />
               </TouchableOpacity>
             </View>
           </View>
@@ -280,7 +280,7 @@ const EjemploCalendarioPersonalizado = () => {
           slideIn();
         }}
       >
-        <Image source={require('./img/MasCirculo.png')} style={styles.addIcon} />
+        <Image source={require('../img/MasCirculo.png')} style={styles.addIcon} />
       </TouchableOpacity>
 
       {/* Modal for MasIcon (Add) */}
@@ -300,10 +300,10 @@ const EjemploCalendarioPersonalizado = () => {
               />
               <View style={styles.actionIcons}>
                 <TouchableOpacity onPress={addExpiredProduct}>
-                  <Image source={require('./img/Palomita.png')} style={styles.actionIcon} />
+                  <Image source={require('../img/Palomita.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
                 <TouchableOpacity>
-                  <Image source={require('./img/Sarten.png')} style={styles.actionIcon} />
+                  <Image source={require('../img/Sarten.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -338,7 +338,7 @@ const EjemploCalendarioPersonalizado = () => {
                       {...createPanResponder(index, 'ingredient').panHandlers}
                       style={styles.dragHandle}
                     >
-                      <Image source={require('./img/Deslizador.png')} style={styles.dragIcon} />
+                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
                     </View>
                     <TextInput
                       style={styles.panelInput}
@@ -348,13 +348,13 @@ const EjemploCalendarioPersonalizado = () => {
                       placeholderTextColor="#888"
                     />
                     <TouchableOpacity onPress={() => removeIngredientInput(index)}>
-                      <Image source={require('./img/Basura.png')} style={styles.trashIcon} />
+                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
                     </TouchableOpacity>
                   </Animated.View>
                 ))}
               </ScrollView>
               <TouchableOpacity style={styles.panelAddButton} onPress={addIngredientInput}>
-                <Image source={require('./img/MasIcon.png')} style={styles.panelAddIcon} />
+                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
               </TouchableOpacity>
             </View>
 
@@ -388,7 +388,7 @@ const EjemploCalendarioPersonalizado = () => {
                       {...createPanResponder(index, 'procedure').panHandlers}
                       style={styles.dragHandle}
                     >
-                      <Image source={require('./img/Deslizador.png')} style={styles.dragIcon} />
+                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
                     </View>
                     <TextInput
                       style={styles.panelInput}
@@ -398,18 +398,18 @@ const EjemploCalendarioPersonalizado = () => {
                       placeholderTextColor="#888"
                     />
                     <TouchableOpacity onPress={() => removeProcedureInput(index)}>
-                      <Image source={require('./img/Basura.png')} style={styles.trashIcon} />
+                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
                     </TouchableOpacity>
                   </Animated.View>
                 ))}
               </ScrollView>
               <TouchableOpacity style={styles.panelAddButton} onPress={addProcedureInput}>
-                <Image source={require('./img/MasIcon.png')} style={styles.panelAddIcon} />
+                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.bottomSection}>
-              <Image source={require('./img/Compartir.png')} style={styles.bottomIcon} />
+              <Image source={require('../img/Compartir.png')} style={styles.bottomIcon} />
               <TextInput
                 style={styles.bottomInput}
                 value={portions}
@@ -447,10 +447,10 @@ const EjemploCalendarioPersonalizado = () => {
               />
               <View style={styles.actionIcons}>
                 <TouchableOpacity onPress={editIngrediente}>
-                  <Image source={require('./img/Palomita.png')} style={styles.actionIcon} />
+                  <Image source={require('../img/Palomita.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
                 <TouchableOpacity>
-                  <Image source={require('./img/Sarten.png')} style={styles.actionIcon} />
+                  <Image source={require('../img/Sarten.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -485,7 +485,7 @@ const EjemploCalendarioPersonalizado = () => {
                       {...createPanResponder(index, 'ingredient').panHandlers}
                       style={styles.dragHandle}
                     >
-                      <Image source={require('./img/Deslizador.png')} style={styles.dragIcon} />
+                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
                     </View>
                     <TextInput
                       style={styles.panelInput}
@@ -495,13 +495,13 @@ const EjemploCalendarioPersonalizado = () => {
                       placeholderTextColor="#888"
                     />
                     <TouchableOpacity onPress={() => removeIngredientInput(index)}>
-                      <Image source={require('./img/Basura.png')} style={styles.trashIcon} />
+                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
                     </TouchableOpacity>
                   </Animated.View>
                 ))}
               </ScrollView>
               <TouchableOpacity style={styles.panelAddButton} onPress={addIngredientInput}>
-                <Image source={require('./img/MasIcon.png')} style={styles.panelAddIcon} />
+                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
               </TouchableOpacity>
             </View>
 
@@ -535,7 +535,7 @@ const EjemploCalendarioPersonalizado = () => {
                       {...createPanResponder(index, 'procedure').panHandlers}
                       style={styles.dragHandle}
                     >
-                      <Image source={require('./img/Deslizador.png')} style={styles.dragIcon} />
+                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
                     </View>
                     <TextInput
                       style={styles.panelInput}
@@ -545,18 +545,18 @@ const EjemploCalendarioPersonalizado = () => {
                       placeholderTextColor="#888"
                     />
                     <TouchableOpacity onPress={() => removeProcedureInput(index)}>
-                      <Image source={require('./img/Basura.png')} style={styles.trashIcon} />
+                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
                     </TouchableOpacity>
                   </Animated.View>
                 ))}
               </ScrollView>
               <TouchableOpacity style={styles.panelAddButton} onPress={addProcedureInput}>
-                <Image source={require('./img/MasIcon.png')} style={styles.panelAddIcon} />
+                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.bottomSection}>
-              <Image source={require('./img/Compartir.png')} style={styles.bottomIcon} />
+              <Image source={require('../img/Compartir.png')} style={styles.bottomIcon} />
               <TextInput
                 style={styles.bottomInput}
                 value={portions}

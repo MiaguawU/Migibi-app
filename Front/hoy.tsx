@@ -101,19 +101,19 @@ const EjemploCalendarioPersonalizado = () => {
         <View style={sHead.headerButtonsContainer}>
           <View style={sHead.naveAl}>
             <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image source={require('./img/bHoy2.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bHoy2.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image source={require('./img/bPlan1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bPlan1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image source={require('./img/bRecetas1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bRecetas1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image source={require('./img/bRefri1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bRefri1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
+              <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
             </Pressable>
           </View>
         </View>
@@ -139,35 +139,35 @@ const EjemploCalendarioPersonalizado = () => {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
             <Pressable style={bIn.button} onPress={() => handlePress('faltante')}>
               <Image
-                source={selectedButtons.faltante ? require('./img/biFal2.png') : require('./img/biFal.png')}
+                source={selectedButtons.faltante ? require('../img/biFal2.png') : require('../img/biFal.png')}
                 style={bIn.imgbi}
               />
               <Text style={bIn.textbi}>Faltante</Text>
             </Pressable>
             <Pressable style={bIn.button} onPress={() => handlePress('caducar')}>
               <Image
-                source={selectedButtons.caducar ? require('./img/biCa2.png') : require('./img/biCa.png')}
+                source={selectedButtons.caducar ? require('../img/biCa2.png') : require('../img/biCa.png')}
                 style={bIn.imgbi}
               />
               <Text style={bIn.textbi}>Caducar</Text>
             </Pressable>
             <Pressable style={bIn.button} onPress={() => handlePress('desayuno')}>
               <Image
-                source={selectedButtons.desayuno ? require('./img/biDes2.png') : require('./img/biDes.png')}
+                source={selectedButtons.desayuno ? require('../img/biDes2.png') : require('../img/biDes.png')}
                 style={bIn.imgbi}
               />
               <Text style={bIn.textbi}>Desayuno</Text>
             </Pressable>
             <Pressable style={bIn.button} onPress={() => handlePress('comida')}>
               <Image
-                source={selectedButtons.comida ? require('./img/biCom2.png') : require('./img/biCom.png')}
+                source={selectedButtons.comida ? require('../img/biCom2.png') : require('../img/biCom.png')}
                 style={bIn.imgbi}
               />
               <Text style={bIn.textbi}>Comida</Text>
             </Pressable>
             <Pressable style={bIn.button} onPress={() => handlePress('cena')}>
               <Image
-                source={selectedButtons.cena ? require('./img/biCe2.png') : require('./img/biCe.png')}
+                source={selectedButtons.cena ? require('../img/biCe2.png') : require('../img/biCe.png')}
                 style={bIn.imgbi}
               />
               <Text style={bIn.textbi}>Cena</Text>
@@ -187,7 +187,7 @@ const EjemploCalendarioPersonalizado = () => {
             <View style={styles.inputColumn}>
               <View style={styles.sartenRow}>
                 <Image
-                  source={require('./img/Sarten.png')}
+                  source={require('../img/Sarten.png')}
                   style={styles.sartenIcon}
                   resizeMode="contain"
                 />
@@ -201,14 +201,14 @@ const EjemploCalendarioPersonalizado = () => {
                 <View style={styles.iconContainer}>
                   <TouchableOpacity onPress={() => openEditModal(index)}>
                     <Image
-                      source={require('./img/Editar.png')}
+                      source={require('../img/Editar.png')}
                       style={styles.editIcon}
                       resizeMode="contain"
                     />
                   </TouchableOpacity>
                   <Pressable onPress={() => removeContainer(index)} style={styles.trashButton}>
                     <Image
-                      source={require('./img/Basura.png')}
+                      source={require('../img/Basura.png')}
                       style={styles.trashIcon}
                       resizeMode="contain"
                     />
@@ -228,7 +228,7 @@ const EjemploCalendarioPersonalizado = () => {
 
         <Pressable onPress={() => setIsModalVisible(true)} style={styles.addButton}>
           <Image
-            source={require('./img/MasCirculo.png')}
+            source={require('../img/MasCirculo.png')}
             style={styles.addIcon}
             resizeMode="contain"
           />
@@ -282,7 +282,7 @@ const EjemploCalendarioPersonalizado = () => {
                 onPress={addContainer}
               >
                 <Image
-                  source={require('./img/Palomita.png')}
+                  source={require('../img/Palomita.png')}
                   style={styles.submitIcon}
                   resizeMode="contain"
                 />
@@ -342,7 +342,7 @@ const EjemploCalendarioPersonalizado = () => {
                 onPress={editContainer}
               >
                 <Image
-                  source={require('./img/Palomita.png')}
+                  source={require('../img/Palomita.png')}
                   style={styles.submitIcon}
                   resizeMode="contain"
                 />

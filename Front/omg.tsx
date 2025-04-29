@@ -2,7 +2,7 @@ import React, { useLayoutEffect } from 'react';
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { Image, ImageBackground, StyleSheet, View } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from './types';
+import { RootStackParamList } from '../types';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 
 type OmgScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Omg'>;
@@ -23,12 +23,12 @@ export default function Omg({ navigation, route }: Props) {
 
   return (
     <ImageBackground
-      source={require('./img/FondoInicio.png')}
+      source={require('../img/FondoInicio.png')}
       style={styles.background}
     >
       <View style={styles.container}>
         <Image
-          source={require('./img/IconoInicio.png')}
+          source={require('../img/IconoInicio.png')}
           style={styles.icon}
           resizeMode="contain"
         />

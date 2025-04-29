@@ -3,14 +3,14 @@ import React from 'react';
 import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Omg from './omg';
-import Plan from './plan';
-import Perfil from './perfil';
-import Reg from './Reg';
-import Iniciar from './iniciar'
-import Hoy from './hoy';
-import Recetas from './recetas';
-import Refri from './refri';
+import Omg from './Front/omg';
+import Plan from './Front/plan';
+import Perfil from './Front/perfil';
+import Reg from './Front/Reg';
+import Iniciar from './Front/iniciar'
+import Hoy from './Front/hoy';
+import Recetas from './Front/recetas';
+import Refri from './Front/refri';
 import { RootStackParamList } from './types';
 
 const Stack = createStackNavigator<RootStackParamList>();

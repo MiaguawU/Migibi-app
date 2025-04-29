@@ -1,16 +1,62 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from './types';
+import { RootStackParamList } from '../types';
 import { AntDesign, Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import PUERTO from '../config';
 
 type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<IniciarScreenNavigationProp>();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [serverMessage, setServerMessage] = useState('');
+
+
+  const sesionNormal = async () => {
+    try {
+      const data = { identifier: email, password };
+      const response = await axios.post(`${PUERTO}/login`, data, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+  
+      const { id, username, foto_perfil, Cohabitantes, Email, message } = response.data;
+  
+      await AsyncStorage.setItem(
+        'currentUser',
+        JSON.stringify({ id, username, email: Email, foto_perfil, Cohabitantes })
+      );
+  
+      setServerMessage(`Bienvenido, ${username}. ${message}`);
+  
+      navigation.navigate('Plan');
+  
+    } catch (error: unknown) {
+      console.error('Error al iniciar sesión:', error);
+  
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data || "Cuenta bloqueada temporalmente (15 min)";
+        setServerMessage(errorMsg); // 👈 Mostrar mensaje del servidor
+      } else {
+        setServerMessage("Ocurrió un error inesperado.");
+      }
+    }
+  };
+  
+  useEffect(() => {
+    if (serverMessage !== '') {
+      const timer = setTimeout(() => setServerMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [serverMessage]);
+  
+  
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -39,19 +85,13 @@ export default function LoginScreen() {
         <WhiteSpace size="lg" />
         <WhiteSpace size="lg" />
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre"
-            placeholderTextColor="#888"
-          />
-        </View>
-        <WhiteSpace size="xl" />
 
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Correo Electrónico"
+            value={email}
+            onChangeText={setEmail}
             placeholderTextColor="#888"
             keyboardType="email-address"
           />
@@ -63,6 +103,8 @@ export default function LoginScreen() {
             style={styles.input}
             placeholder="Contraseña"
             placeholderTextColor="#888"
+            value={password}
+            onChangeText={setPassword}
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity
@@ -80,14 +122,18 @@ export default function LoginScreen() {
 
         <Button
           style={styles.button}
-          onPress={() => navigation.navigate('Hoy')}
+          onPress={sesionNormal}
         >
           Iniciar Sesión
         </Button>
         <WhiteSpace size="xl" />
 
+        {serverMessage !== '' && (
+          <Text style={styles.message}>{serverMessage}</Text>
+        )}
+
         <Image
-          source={require('./img/IconoGoogle.png')}
+          source={require('../img/IconoGoogle.png')}
           style={styles.googleIcon}
           resizeMode="contain"
         />
@@ -103,6 +149,14 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#fff',
   },
+  message: {
+    color: '#d9534f', // rojo para errores
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  
   backButton: {
     position: 'absolute',
     top: 40,
