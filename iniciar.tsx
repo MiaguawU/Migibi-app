@@ -80,7 +80,7 @@ export default function LoginScreen() {
 
         <Button
           style={styles.button}
-          onPress={() => navigation.navigate('Plan')}
+          onPress={() => navigation.navigate('Hoy')}
         >
           Iniciar Sesión
         </Button>

@@ -1,16 +1,8 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  Pressable,
-  View,
-  Image,
-  TextInput,
-  ScrollView,
-  Dimensions,
-} from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {StyleSheet, Text, Pressable, View, Image, TextInput, ScrollView, Dimensions, Modal, Animated,} from 'react-native';
 import { Provider } from '@ant-design/react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -36,6 +28,52 @@ export default function Plan() {
     comida: false,
     cena: false,
   });
+
+  // Estado para el modal animado
+  const [modalVisible, setModalVisible] = useState(false);
+  // Estado para el modal básico
+  const [basicModalVisible, setBasicModalVisible] = useState(false);
+  const [fecha, setFecha] = useState('');
+  const [tipo, setTipo] = useState('opcion 1');
+  const [porciones, setPorciones] = useState('');
+
+  // Animación para el modal animado
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  // Función para abrir el modal animado con animación
+  const openModal = () => {
+    setModalVisible(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Función para cerrar el modal animado con animación
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: SCREEN_HEIGHT,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setModalVisible(false));
+  };
+
+  // Función para abrir el modal básico
+  const openBasicModal = () => {
+    setBasicModalVisible(true);
+  };
+
+  // Función para cerrar el modal básico
+  const closeBasicModal = () => {
+    setBasicModalVisible(false);
+  };
+
+  // Función para cerrar el modal básico y abrir el modal animado
+  const handleBasicModalOption = () => {
+    closeBasicModal();
+    openModal();
+  };
 
   const navigateToScreen = (screenName: keyof RootStackParamList) => {
     navigation.navigate(screenName);
@@ -198,12 +236,144 @@ export default function Plan() {
               resizeMode="contain"
             />
           </View>
-          <Image
-            source={require('./img/bV2.png')}
-            style={styles.bottomIcon}
-            resizeMode="contain"
-          />
+          <View style={styles.bottomRightIcons}>
+            <Pressable onPress={openBasicModal}>
+              <Image
+                source={require('./img/MasCirculo.png')}
+                style={styles.bottomCirculo}
+                resizeMode="contain"
+              />
+            </Pressable>
+            <Image
+              source={require('./img/bV2.png')}
+              style={styles.bottomIcon}
+              resizeMode="contain"
+            />
+          </View>
         </View>
+
+        {/* Modal Básico */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={basicModalVisible}
+          onRequestClose={closeBasicModal}
+        >
+          <View style={styles.basicModalOverlay}>
+            <View style={styles.basicModalContainer}>
+              <Pressable onPress={closeBasicModal} style={styles.basicModalBackButton}>
+                <Image
+                  source={require('./img/fIzq.png')}
+                  style={styles.basicModalBackIcon}
+                  resizeMode="contain"
+                />
+              </Pressable>
+              <View style={styles.basicModalSeparator} />
+              <Text style={styles.basicModalText}>
+                ¿Quiere que solo aparezcan ingredientes que ya tiene en casa?
+              </Text>
+              <View style={styles.basicModalButtonContainer}>
+                <Pressable
+                  style={[styles.basicModalButton, styles.basicModalButtonNo]}
+                  onPress={handleBasicModalOption}
+                >
+                  <Text style={styles.basicModalButtonText}>No</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.basicModalButton, styles.basicModalButtonYes]}
+                  onPress={handleBasicModalOption}
+                >
+                  <Text style={styles.basicModalButtonText}>Sí</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal Animado */}
+        <Modal
+          animationType="none"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={closeModal}
+        >
+          <View style={styles.modalOverlay}>
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                {
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <View style={styles.modalTop}>
+                <Pressable onPress={closeModal} style={styles.modalBackButton}>
+                  <Image
+                    source={require('./img/fIzq.png')}
+                    style={styles.modalBackIcon}
+                    resizeMode="contain"
+                  />
+                </Pressable>
+              </View>
+              <View style={styles.modalSeparator} />
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalHeaderText}>Agregar plan</Text>
+              </View>
+              <View style={styles.modalContent}>
+                {/* Fecha Row */}
+                <View style={styles.modalRow}>
+                  <Text style={styles.modalLabel}>Fecha</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Ingresa la fecha"
+                    placeholderTextColor="#888"
+                    value={fecha}
+                    onChangeText={setFecha}
+                  />
+                  <Image
+                    source={require('./img/CalenIcon.png')}
+                    style={styles.modalIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+                {/* Tipo Row */}
+                <View style={styles.modalRow}>
+                  <Text style={styles.modalLabel}>Tipo</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={tipo}
+                      onValueChange={(itemValue) => setTipo(itemValue)}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="Selecciona una opcion..." value="" />
+                      <Picker.Item label="Opción 1" value="opcion 1" />
+                      <Picker.Item label="Opción 2" value="opcion 2" />
+                    </Picker>
+                  </View>
+                </View>
+                {/* Porciones Row */}
+                <View style={styles.modalRow}>
+                  <Text style={styles.modalLabel}>Porciones</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Ingresa porciones"
+                    placeholderTextColor="#888"
+                    keyboardType="numeric"
+                    value={porciones}
+                    onChangeText={setPorciones}
+                  />
+                </View>
+              </View>
+              <Pressable style={styles.modalButton} onPress={closeModal}>
+                <Image
+                  source={require('./img/Palomita.png')}
+                  style={styles.modalButtonIcon}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            </Animated.View>
+          </View>
+        </Modal>
       </ScrollView>
     </Provider>
   );
@@ -370,9 +540,164 @@ const styles = StyleSheet.create({
   bottomLeftIcons: {
     flexDirection: 'row',
   },
+  bottomRightIcons: {
+    flexDirection: 'row',
+  },
   bottomIcon: {
     width: SCREEN_WIDTH * 0.12,
     height: SCREEN_WIDTH * 0.12,
     marginRight: SCREEN_WIDTH * 0.02,
+  },
+  bottomCirculo: {
+    marginTop: SCREEN_HEIGHT * 0.0055,
+    width: SCREEN_WIDTH * 0.09,
+    height: SCREEN_WIDTH * 0.09,
+    marginRight: SCREEN_WIDTH * 0.03,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: SCREEN_WIDTH * 0.05,
+    borderTopRightRadius: SCREEN_WIDTH * 0.05,
+    padding: SCREEN_WIDTH * 0.05,
+    height: SCREEN_HEIGHT * 0.5,
+  },
+  modalTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SCREEN_HEIGHT * 0.01,
+  },
+  modalBackButton: {
+    padding: SCREEN_WIDTH * 0.02,
+  },
+  modalBackIcon: {
+    width: SCREEN_WIDTH * 0.06,
+    height: SCREEN_WIDTH * 0.06,
+  },
+  modalSeparator: {
+    height: 1,
+    backgroundColor: '#8CA966',
+    marginBottom: SCREEN_HEIGHT * 0.02,
+  },
+  modalHeader: {
+    backgroundColor: '#8CA966',
+    paddingVertical: SCREEN_HEIGHT * 0.02,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    alignItems: 'center',
+    marginBottom: SCREEN_HEIGHT * 0.02,
+  },
+  modalHeaderText: {
+    fontSize: SCREEN_WIDTH * 0.06,
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SCREEN_HEIGHT * 0.02,
+  },
+  modalLabel: {
+    fontSize: SCREEN_WIDTH * 0.045,
+    color: '#40632F',
+    width: SCREEN_WIDTH * 0.2,
+  },
+  modalInput: {
+    flex: 1,
+    height: SCREEN_HEIGHT * 0.05,
+    backgroundColor: 'white',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.04,
+    marginRight: SCREEN_WIDTH * 0.02,
+  },
+  modalIcon: {
+    width: SCREEN_WIDTH * 0.08,
+    height: SCREEN_WIDTH * 0.08,
+  },
+  pickerContainer: {
+    flex: 1,
+    height: SCREEN_HEIGHT * 0.05,
+    backgroundColor: 'white',
+    borderColor: '#8CA966',
+    borderWidth: 2,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    justifyContent: 'center',
+  },
+  picker: {
+    height: SCREEN_HEIGHT * 0.05,
+    color: '#40632F',
+  },
+  modalButton: {
+    alignSelf: 'flex-end',
+    marginTop: SCREEN_HEIGHT * 0.02,
+  },
+  modalButtonIcon: {
+    width: SCREEN_WIDTH * 0.08,
+    height: SCREEN_WIDTH * 0.08,
+  },
+  basicModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  basicModalContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: SCREEN_WIDTH * 0.05,
+    padding: SCREEN_WIDTH * 0.05,
+    width: SCREEN_WIDTH * 0.8,
+    alignItems: 'center',
+  },
+  basicModalBackButton: {
+    alignSelf: 'flex-start',
+    padding: SCREEN_WIDTH * 0.02,
+  },
+  basicModalBackIcon: {
+    width: SCREEN_WIDTH * 0.06,
+    height: SCREEN_WIDTH * 0.06,
+  },
+  basicModalSeparator: {
+    height: 1,
+    backgroundColor: '#8CA966',
+    width: '100%',
+    marginVertical: SCREEN_HEIGHT * 0.02,
+  },
+  basicModalText: {
+    fontSize: SCREEN_WIDTH * 0.045,
+    color: '#40632F',
+    textAlign: 'center',
+    marginBottom: SCREEN_HEIGHT * 0.03,
+  },
+  basicModalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  basicModalButton: {
+    flex: 1,
+    paddingVertical: SCREEN_HEIGHT * 0.015,
+    borderRadius: SCREEN_WIDTH * 0.03,
+    alignItems: 'center',
+    marginHorizontal: SCREEN_WIDTH * 0.02,
+  },
+  basicModalButtonNo: {
+    backgroundColor: '#D9534F',
+  },
+  basicModalButtonYes: {
+    backgroundColor: '#8CA966',
+  },
+  basicModalButtonText: {
+    fontSize: SCREEN_WIDTH * 0.04,
+    color: '#FFF',
+    fontWeight: 'bold',
   },
 });

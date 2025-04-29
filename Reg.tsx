@@ -102,7 +102,7 @@ export default function EjemploCalendarioPersonalizado() {
 
         <Button
           style={styles.button}
-          onPress={() => navigation.navigate('Refri')}
+          onPress={() => navigation.navigate('Hoy')}
         >
           Registrarme
         </Button>

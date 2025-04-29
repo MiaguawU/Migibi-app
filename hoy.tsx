@@ -8,6 +8,8 @@ import {
   ScrollView,
   Dimensions,
   TextInput,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
@@ -27,11 +29,11 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const EjemploCalendarioPersonalizado = () => {
   const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
-  const [showCalendar, setShowCalendar] = useState(false); // Estado para mostrar/ocultar el calendario
+  const [showCalendar, setShowCalendar] = useState(false);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   // Estados del primer código
-  const [containers, setContainers] = useState([0]); // Estado para manejar múltiples contenedores
+  const [containers, setContainers] = useState([0]);
   const [selectedButtons, setSelectedButtons] = useState({
     faltante: false,
     caducar: false,
@@ -39,37 +41,61 @@ const EjemploCalendarioPersonalizado = () => {
     comida: false,
     cena: false,
   });
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [comida, setComida] = useState('');
+  const [editar, setEditar] = useState('');
+  const [porciones, setPorciones] = useState('');
 
   const navigateToScreen = (screenName: keyof RootStackParamList) => {
     navigation.navigate(screenName);
   };
 
-  // Función para manejar el cambio de imagen al presionar un botón
   const handlePress = (button: keyof typeof selectedButtons) => {
     setSelectedButtons((prevState) => ({
       ...prevState,
-      [button]: !prevState[button], // Cambia el estado de la imagen (presionado o no)
+      [button]: !prevState[button],
     }));
   };
 
-  // Función para agregar un nuevo contenedor
   const addContainer = () => {
     setContainers([...containers, containers.length]);
+    setComida('');
+    setEditar('');
+    setPorciones('');
+    setIsModalVisible(false);
   };
 
-  // Función para eliminar un contenedor
   const removeContainer = (index: number) => {
     setContainers(containers.filter((_, i) => i !== index));
   };
 
-  // Configuración de la barra de navegación
+  const editContainer = () => {
+    // Clear inputs and close modal without adding a new container
+    setComida('');
+    setEditar('');
+    setPorciones('');
+    setIsEditModalVisible(false);
+    setEditIndex(null);
+  };
+
+  const openEditModal = (index: number) => {
+    setEditIndex(index);
+    // Pre-fill with placeholder data since containers is just indices
+    setComida('Comida');
+    setEditar('Editar...');
+    setPorciones('Porciones: ');
+    setIsEditModalVisible(true);
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerBackTitleVisible: true, // Mantiene el botón de regresar visible
+      headerBackTitleVisible: true,
       headerTintColor: '#40632F',
-      headerTitle: '', // Oculta el título
+      headerTitle: '',
       headerStyle: {
-        height: SCREEN_HEIGHT * 0.15, // Altura responsiva (15% de la altura de la pantalla)
+        height: SCREEN_HEIGHT * 0.15,
       },
       headerRight: () => (
         <View style={sHead.headerButtonsContainer}>
@@ -97,20 +123,18 @@ const EjemploCalendarioPersonalizado = () => {
 
   const onDayPress = (day: any) => {
     setSelectedDate(day.dateString);
-    setShowCalendar(false); // Ocultar el calendario al seleccionar una fecha
+    setShowCalendar(false);
   };
 
-  // Si selectedDate está definido, lo usamos; de lo contrario, pasamos un objeto vacío.
   const markedDates = selectedDate
     ? {
-        [selectedDate]: { selected: true, selectedColor: '#CEDFAD' }, // Selección con color
+        [selectedDate]: { selected: true, selectedColor: '#CEDFAD' },
       }
     : {};
 
   return (
     <Provider>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Botones Horizontales */}
         <View style={bIn.botonesIn}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
             <Pressable style={bIn.button} onPress={() => handlePress('faltante')}>
@@ -151,40 +175,37 @@ const EjemploCalendarioPersonalizado = () => {
           </ScrollView>
         </View>
 
-        {/* Contenedores dinámicos */}
         {containers.map((_, index) => (
           <View key={index} style={styles.container}>
-            {/* Primer TextInput ("Comida") */}
             <TextInput
               style={styles.inputTop}
               placeholder="Comida"
               placeholderTextColor="#888"
+              value={comida}
+              onChangeText={setComida}
             />
-
-            {/* Contenedor para alinear el segundo y tercer TextInput */}
             <View style={styles.inputColumn}>
-              {/* Imagen Sarten.png y segundo TextInput */}
               <View style={styles.sartenRow}>
                 <Image
                   source={require('./img/Sarten.png')}
                   style={styles.sartenIcon}
                   resizeMode="contain"
                 />
-
-                {/* Segundo TextInput (al lado de Sarten) con bordes curvos */}
                 <TextInput
                   style={styles.inputMiddle}
-                  placeholder="Editar..."
+                  placeholder="Nombre..."
                   placeholderTextColor="#888"
+                  value={editar}
+                  onChangeText={setEditar}
                 />
-
-                {/* Imágenes Editar y Basura al lado derecho */}
                 <View style={styles.iconContainer}>
-                  <Image
-                    source={require('./img/Editar.png')}
-                    style={styles.editIcon}
-                    resizeMode="contain"
-                  />
+                  <TouchableOpacity onPress={() => openEditModal(index)}>
+                    <Image
+                      source={require('./img/Editar.png')}
+                      style={styles.editIcon}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
                   <Pressable onPress={() => removeContainer(index)} style={styles.trashButton}>
                     <Image
                       source={require('./img/Basura.png')}
@@ -194,25 +215,141 @@ const EjemploCalendarioPersonalizado = () => {
                   </Pressable>
                 </View>
               </View>
-
-              {/* Tercer TextInput (más pequeño, debajo del segundo) */}
               <TextInput
                 style={styles.inputSmall}
                 placeholder="Porciones: "
                 placeholderTextColor="#888"
+                value={porciones}
+                onChangeText={setPorciones}
               />
             </View>
           </View>
         ))}
 
-        {/* Imagen MasCirculo.png en la parte inferior derecha */}
-        <Pressable onPress={addContainer} style={styles.addButton}>
+        <Pressable onPress={() => setIsModalVisible(true)} style={styles.addButton}>
           <Image
             source={require('./img/MasCirculo.png')}
             style={styles.addIcon}
             resizeMode="contain"
           />
         </Pressable>
+
+        {/* Modal for MasCirculo (Add) */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPressOut={() => setIsModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.titlePanel}>
+                <Text style={styles.modalTitle}>Agregar comida</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Comida:</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={comida}
+                  onChangeText={setComida}
+                  placeholderTextColor="#888"
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Nombre:</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editar}
+                  onChangeText={setEditar}
+                  placeholderTextColor="#888"
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Porciones:</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={porciones}
+                  onChangeText={setPorciones}
+                  placeholderTextColor="#888"
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={addContainer}
+              >
+                <Image
+                  source={require('./img/Palomita.png')}
+                  style={styles.submitIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Modal for Editar (Edit) */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isEditModalVisible}
+          onRequestClose={() => setIsEditModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPressOut={() => setIsEditModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.titlePanel}>
+                <Text style={styles.modalTitle}>Editar comida</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Comida:</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={comida}
+                  onChangeText={setComida}
+                  placeholder="Comida"
+                  placeholderTextColor="#888"
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Editar:</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editar}
+                  onChangeText={setEditar}
+                  placeholder="Editar..."
+                  placeholderTextColor="#888"
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Porciones:</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={porciones}
+                  onChangeText={setPorciones}
+                  placeholder="Porciones: "
+                  placeholderTextColor="#888"
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={editContainer}
+              >
+                <Image
+                  source={require('./img/Palomita.png')}
+                  style={styles.submitIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </ScrollView>
     </Provider>
   );
@@ -222,7 +359,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingVertical: SCREEN_HEIGHT * 0.02, // 2% de la altura
+    paddingVertical: SCREEN_HEIGHT * 0.02,
   },
   innerContainer: {
     width: '100%',
@@ -230,26 +367,26 @@ const styles = StyleSheet.create({
     marginBottom: SCREEN_HEIGHT * 0.02,
   },
   container: {
-    width: '90%', // 90% del ancho de la pantalla
+    width: '90%',
     backgroundColor: '#CAE2B5',
     borderColor: '#8CA966',
     borderWidth: 2,
-    borderRadius: SCREEN_WIDTH * 0.03, // 3% del ancho
-    padding: SCREEN_WIDTH * 0.04, // 4% del ancho
-    marginBottom: SCREEN_HEIGHT * 0.01, // Espacio entre contenedores
-    marginTop: SCREEN_HEIGHT * 0.015, // Reducido de 0.03 a 0.015
+    borderRadius: SCREEN_WIDTH * 0.03,
+    padding: SCREEN_WIDTH * 0.04,
+    marginBottom: SCREEN_HEIGHT * 0.01,
+    marginTop: SCREEN_HEIGHT * 0.015,
     alignItems: 'flex-start',
   },
   inputTop: {
     width: '50%',
-    height: SCREEN_HEIGHT * 0.05, // 5% de la altura
+    height: SCREEN_HEIGHT * 0.05,
     backgroundColor: 'white',
     borderColor: '#8CA966',
     borderWidth: 2,
-    borderRadius: SCREEN_WIDTH * 0.03, // 3% del ancho
-    paddingHorizontal: SCREEN_WIDTH * 0.03, // 3% del ancho
-    fontSize: SCREEN_WIDTH * 0.04, // 4% del ancho
-    marginBottom: SCREEN_HEIGHT * 0.01, // 1% de la altura
+    borderRadius: SCREEN_WIDTH * 0.03,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.04,
+    marginBottom: SCREEN_HEIGHT * 0.01,
   },
   inputColumn: {
     flexDirection: 'column',
@@ -259,86 +396,150 @@ const styles = StyleSheet.create({
   sartenRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Espacia los elementos
-    marginBottom: SCREEN_HEIGHT * 0.005, // 0.5% de la altura
+    justifyContent: 'space-between',
+    marginBottom: SCREEN_HEIGHT * 0.005,
     width: '100%',
   },
   sartenIcon: {
-    width: SCREEN_WIDTH * 0.1, // 10% del ancho
-    height: SCREEN_WIDTH * 0.1, // Proporcional al ancho
-    marginRight: SCREEN_WIDTH * 0.02, // 2% del ancho
+    width: SCREEN_WIDTH * 0.1,
+    height: SCREEN_WIDTH * 0.1,
+    marginRight: SCREEN_WIDTH * 0.02,
   },
   inputMiddle: {
-    width: SCREEN_WIDTH * 0.55, // 55% del ancho
-    height: SCREEN_HEIGHT * 0.05, // 5% de la altura
+    width: SCREEN_WIDTH * 0.55,
+    height: SCREEN_HEIGHT * 0.05,
     backgroundColor: 'white',
     borderColor: '#8CA966',
     borderWidth: 2,
-    borderRadius: SCREEN_WIDTH * 0.05, // 5% del ancho
-    paddingHorizontal: SCREEN_WIDTH * 0.03, // 3% del ancho
-    fontSize: SCREEN_WIDTH * 0.04, // 4% del ancho
+    borderRadius: SCREEN_WIDTH * 0.05,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.04,
   },
   iconContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   editIcon: {
-    width: SCREEN_WIDTH * 0.05, // 5% del ancho
-    height: SCREEN_WIDTH * 0.05, // Proporcional al ancho
-    marginRight: SCREEN_WIDTH * 0.02, // 2% del ancho
+    width: SCREEN_WIDTH * 0.05,
+    height: SCREEN_WIDTH * 0.05,
+    marginRight: SCREEN_WIDTH * 0.02,
   },
   trashButton: {
     // No se necesita margen adicional
   },
   trashIcon: {
-    width: SCREEN_WIDTH * 0.05, // 5% del ancho
-    height: SCREEN_WIDTH * 0.05, // Proporcional al ancho
+    width: SCREEN_WIDTH * 0.05,
+    height: SCREEN_WIDTH * 0.05,
   },
   inputSmall: {
-    width: SCREEN_WIDTH * 0.3, // 30% del ancho
-    height: SCREEN_HEIGHT * 0.03, // 3% de la altura
+    width: SCREEN_WIDTH * 0.3,
+    height: SCREEN_HEIGHT * 0.03,
     backgroundColor: 'white',
     borderColor: '#8CA966',
     borderWidth: 2,
-    borderRadius: SCREEN_WIDTH * 0.03, // 3% del ancho
-    paddingHorizontal: SCREEN_WIDTH * 0.03, // 3% del ancho
-    fontSize: SCREEN_WIDTH * 0.03, // 3% del ancho
-    marginLeft: SCREEN_WIDTH * 0.12, // Alineado debajo del segundo TextInput
+    borderRadius: SCREEN_WIDTH * 0.03,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.03,
+    marginLeft: SCREEN_WIDTH * 0.12,
   },
   addButton: {
     position: 'absolute',
-    bottom: SCREEN_HEIGHT * 0.02, // 2% de la altura
-    right: SCREEN_WIDTH * 0.05, // 5% del ancho
+    bottom: SCREEN_HEIGHT * 0.02,
+    right: SCREEN_WIDTH * 0.05,
   },
   addIcon: {
-    width: SCREEN_WIDTH * 0.12, // 12% del ancho
-    height: SCREEN_WIDTH * 0.12, // Proporcional al ancho
+    width: SCREEN_WIDTH * 0.12,
+    height: SCREEN_WIDTH * 0.12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: SCREEN_WIDTH * 0.8,
+    backgroundColor: '#fff',
+    borderRadius: SCREEN_WIDTH * 0.05,
+    padding: SCREEN_WIDTH * 0.05,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  titlePanel: {
+    backgroundColor: '#8CA966',
+    borderColor: '#8CA966',
+    borderWidth: SCREEN_WIDTH * 0.003,
+    width: '100%',
+    paddingVertical: SCREEN_HEIGHT * 0.015,
+    borderRadius: SCREEN_WIDTH * 0.02,
+    marginBottom: SCREEN_HEIGHT * 0.02,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: SCREEN_WIDTH * 0.05,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: SCREEN_HEIGHT * 0.02,
+  },
+  inputLabel: {
+    fontSize: SCREEN_WIDTH * 0.04,
+    color: '#000',
+    width: SCREEN_WIDTH * 0.25,
+  },
+  modalInput: {
+    flex: 1,
+    height: SCREEN_HEIGHT * 0.05,
+    backgroundColor: '#CAE2B5',
+    borderColor: '#8CA966',
+    borderWidth: SCREEN_WIDTH * 0.003,
+    borderRadius: SCREEN_WIDTH * 0.02,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    fontSize: SCREEN_WIDTH * 0.04,
+    color: '#000',
+  },
+  submitButton: {
+    alignSelf: 'flex-end',
+    marginTop: SCREEN_HEIGHT * 0.02,
+  },
+  submitIcon: {
+    width: SCREEN_WIDTH * 0.07,
+    height: SCREEN_WIDTH * 0.07,
   },
 });
 
 const bIn = StyleSheet.create({
   button: {
     alignItems: 'center',
-    marginHorizontal: SCREEN_WIDTH * 0.02, // 2% del ancho
+    marginHorizontal: SCREEN_WIDTH * 0.02,
   },
   imgbi: {
-    width: SCREEN_WIDTH * 0.15, // 15% del ancho
-    height: SCREEN_WIDTH * 0.15, // Proporcional al ancho
+    width: SCREEN_WIDTH * 0.15,
+    height: SCREEN_WIDTH * 0.15,
   },
   textbi: {
     fontFamily: 'Jomhuria',
-    fontSize: SCREEN_WIDTH * 0.06, // 6% del ancho
+    fontSize: SCREEN_WIDTH * 0.06,
     color: '#6B8762',
   },
   botonesIn: {
-    marginTop: SCREEN_HEIGHT * 0.04, // Separación del header
-    marginBottom: SCREEN_HEIGHT * 0.015, // Reducido de 0.03 a 0.015
+    marginTop: SCREEN_HEIGHT * 0.04,
+    marginBottom: SCREEN_HEIGHT * 0.015,
     width: '100%',
   },
   scrollContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: SCREEN_WIDTH * 0.02, // 2% del ancho
+    paddingHorizontal: SCREEN_WIDTH * 0.02,
   },
 });
 
@@ -346,32 +547,32 @@ const sHead = StyleSheet.create({
   headerButtonsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: SCREEN_WIDTH, // Ocupa todo el ancho de la pantalla
-    height: SCREEN_HEIGHT * 0.15, // Igual que la altura del header
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.15,
   },
   headerIcon: {
-    width: SCREEN_WIDTH * 0.15, // 15% del ancho de la pantalla
-    height: SCREEN_HEIGHT * 0.07, // 7% de la altura de la pantalla
-    marginHorizontal: SCREEN_WIDTH * 0.01, // 1% del ancho
+    width: SCREEN_WIDTH * 0.15,
+    height: SCREEN_HEIGHT * 0.07,
+    marginHorizontal: SCREEN_WIDTH * 0.01,
     resizeMode: 'contain',
   },
   headerIcon2: {
-    width: SCREEN_WIDTH * 0.16, // 16% del ancho de la pantalla
-    height: SCREEN_HEIGHT * 0.08, // 8% de la altura de la pantalla
+    width: SCREEN_WIDTH * 0.16,
+    height: SCREEN_HEIGHT * 0.08,
     resizeMode: 'contain',
   },
   headerIconEs: {
-    marginHorizontal: SCREEN_WIDTH * 0.01, // 1% del ancho
+    marginHorizontal: SCREEN_WIDTH * 0.01,
   },
   naveAl: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Distribuye los íconos uniformemente
+    justifyContent: 'space-between',
     backgroundColor: '#9FAF7D',
-    width: SCREEN_WIDTH, // Ocupa todo el ancho de la pantalla
-    height: SCREEN_HEIGHT * 0.07, // Altura proporcional
-    top: SCREEN_HEIGHT * 0.06, // Posición ajustada
-    paddingHorizontal: SCREEN_WIDTH * 0.02, // Padding para los íconos
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.07,
+    top: SCREEN_HEIGHT * 0.06,
+    paddingHorizontal: SCREEN_WIDTH * 0.02,
   },
 });
 
