@@ -26,6 +26,8 @@ type RootStackParamList = {
   Recetas: undefined;
   Refri: undefined;
   Perfil: undefined;
+  refriAgregarStock: undefined;
+  refriEditarStock: undefined;
 };
 
 interface CardData {
@@ -467,7 +469,7 @@ const opacity = animatedValues[index];
         </View>
         <Pressable
           style={styles.addButton}
-          onPress={() => setIsModalVisible(true)}
+          onPress={() => navigation.navigate('refriAgregarStock')}
         >
           <Image source={require('../img/MasCirculo.png')} style={styles.addIcon} />
         </Pressable>

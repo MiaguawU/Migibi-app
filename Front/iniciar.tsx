@@ -10,7 +10,9 @@ import axios from 'axios';
 import PUERTO from '../config';
 
 type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;
-
+{/**
+  sessionNormal = navigation.navigate('Plan')
+  */}
 export default function LoginScreen() {
   const navigation = useNavigation<IniciarScreenNavigationProp>();
   const [showPassword, setShowPassword] = useState(false);
@@ -122,7 +124,7 @@ export default function LoginScreen() {
 
         <Button
           style={styles.button}
-          onPress={sesionNormal}
+          onPress={() => navigation.navigate('Plan')}
         >
           Iniciar Sesión
         </Button>

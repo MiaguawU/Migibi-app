@@ -24,6 +24,7 @@ type RootStackParamList = {
   Perfil: undefined;
 };
 
+
 // Obtener las dimensiones de la pantalla para hacer el diseño responsivo
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
