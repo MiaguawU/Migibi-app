@@ -11,6 +11,10 @@ import Iniciar from './iniciar'
 import Hoy from './hoy';
 import Recetas from './recetas';
 import Refri from './refri';
+import ModalRefri from './refri';
+import ModalPlan from './plan';
+import ModalRecetas from './recetas';
+import ModalHoy from './hoy';
 import { RootStackParamList } from './types';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -36,6 +40,10 @@ export default function App() {
         <Stack.Screen name="Hoy" component={Hoy} />
         <Stack.Screen name="Recetas" component={Recetas} />
         <Stack.Screen name="Refri" component={Refri} />
+        <Stack.Screen name="ModalRefri" component={Refri} />
+        <Stack.Screen name="ModalPlan" component={Plan} />
+        <Stack.Screen name="ModalRecetas" component={Recetas} />
+        <Stack.Screen name="ModalHoy" component={Hoy} />
       </Stack.Navigator>
     </NavigationContainer>
   );

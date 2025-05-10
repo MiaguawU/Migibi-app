@@ -1,8 +1,8 @@
-import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, Dimensions, Modal, TextInput,} from 'react-native';
+import React, { Component, useState, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, Dimensions } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import { Picker } from '@react-native-picker/picker';
+import { AddModal, EditModal } from './ModalRefri';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -13,23 +13,49 @@ type RootStackParamList = {
   Perfil: undefined;
 };
 
-// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Tipo para los ingredientes
+type Ingrediente = {
+  id: number;
+  nombre: string;
+  cantidad: string;
+  caducidad: string;
+};
 
-const EjemploCalendarioPersonalizado = () => {
+// Obtener las dimensiones de la pantalla
+export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Error Boundary Component
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error al renderizar la pantalla. Verifica la consola.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const Refri = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [ingredientes, setIngredientes] = useState<number[]>([0]);
-  const [isModalVisible, setIsModalVisible] = useState(false); // State for add modal visibility
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false); // State for edit modal visibility
-  const [editIndex, setEditIndex] = useState<number | null>(null); // State to track edit index
-  const [nombre, setNombre] = useState(''); // State for ingredient name
-  const [cantidad, setCantidad] = useState(''); // State for ingredient quantity
-  const [caducidad, setCaducidad] = useState(''); // State for expiration date
-  const [tipo, setTipo] = useState(''); // State for ingredient type
-  const [unidad, setUnidad] = useState(''); // State for ingredient unit
+  const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [nombre, setNombre] = useState('');
+  const [cantidad, setCantidad] = useState('');
+  const [caducidad, setCaducidad] = useState('');
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
@@ -80,11 +106,17 @@ const EjemploCalendarioPersonalizado = () => {
   };
 
   const addNuevoIngrediente = () => {
-    setIngredientes([...ingredientes, ingredientes.length]);
+    const newIngrediente: Ingrediente = {
+      id: ingredientes.length,
+      nombre,
+      cantidad,
+      caducidad,
+    };
+    setIngredientes([...ingredientes, newIngrediente]);
   };
 
-  const removeNuevoIngrediente = (index: number) => {
-    setIngredientes(ingredientes.filter((_, i) => i !== index));
+  const removeNuevoIngrediente = (id: number) => {
+    setIngredientes(ingredientes.filter((ing) => ing.id !== id));
   };
 
   const addExpiredProduct = () => {
@@ -95,31 +127,29 @@ const EjemploCalendarioPersonalizado = () => {
     setNombre('');
     setCantidad('');
     setCaducidad('');
-    setTipo('');
-    setUnidad('');
     setIsModalVisible(false);
   };
 
   const editIngrediente = () => {
-    // Update the ingredient data (not adding to ScrollView)
-    // For now, just clear inputs and close modal since ingredient data structure is not fully defined
+    if (editIndex !== null) {
+      const updatedIngredientes = ingredientes.map((ing, index) =>
+        index === editIndex ? { ...ing, nombre, cantidad, caducidad } : ing
+      );
+      setIngredientes(updatedIngredientes);
+    }
     setNombre('');
     setCantidad('');
     setCaducidad('');
-    setTipo('');
-    setUnidad('');
     setIsEditModalVisible(false);
     setEditIndex(null);
   };
 
   const openEditModal = (index: number) => {
+    const ingrediente = ingredientes[index];
     setEditIndex(index);
-    // Pre-fill with current ingredient data (using placeholder since data structure is not defined)
-    setNombre('Pastel'); // Example, replace with actual data if available
-    setCantidad('10'); // Example, replace with actual data if available
-    setCaducidad('');
-    setTipo('');
-    setUnidad('');
+    setNombre(ingrediente.nombre);
+    setCantidad(ingrediente.cantidad);
+    setCaducidad(ingrediente.caducidad);
     setIsEditModalVisible(true);
   };
 
@@ -141,7 +171,7 @@ const EjemploCalendarioPersonalizado = () => {
     }
   };
 
-  if (showCamera) {
+  const renderCameraOrScanner = () => {
     if (hasPermission === null) {
       return <Text>Requesting camera permission</Text>;
     }
@@ -157,14 +187,14 @@ const EjemploCalendarioPersonalizado = () => {
           barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
         />
         {scanned && (
-          <Pressable
-            style={styles.scanAgainButtonFull}
-            onPress={() => setScanned(false)}
-          >
+          <Pressable style={styles.scanAgainButtonFull} onPress={() => setScanned(false)}>
             <Text style={styles.scanAgainText}>Scan Again</Text>
           </Pressable>
         )}
-        <Pressable style={styles.closeButton} onPress={() => setShowCamera(false)}>
+        <Pressable
+          style={styles.closeButton}
+          onPress={() => (showCamera ? setShowCamera(false) : setShowScanner(false))}
+        >
           <Text style={styles.closeText}>Cerrar</Text>
         </Pressable>
         <Pressable style={styles.addButtonFull} onPress={addExpiredProduct}>
@@ -172,308 +202,88 @@ const EjemploCalendarioPersonalizado = () => {
         </Pressable>
       </View>
     );
-  }
+  };
 
-  if (showScanner) {
-    if (hasPermission === null) {
-      return <Text>Requesting camera permission</Text>;
-    }
-    if (hasPermission === false) {
-      return <Text>No access to camera</Text>;
-    }
-
-    return (
-      <View style={styles.fullScreen}>
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-          style={styles.cameraFull}
-          barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
-        />
-        {scanned && (
-          <Pressable
-            style={styles.scanAgainButtonFull}
-            onPress={() => setScanned(false)}
-          >
-            <Text style={styles.scanAgainText}>Scan Again</Text>
-          </Pressable>
-        )}
-        <Pressable style={styles.closeButton} onPress={() => setShowScanner(false)}>
-          <Text style={styles.closeText}>Cerrar</Text>
-        </Pressable>
-        <Pressable style={styles.addButtonFull} onPress={addExpiredProduct}>
-          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
-        </Pressable>
-      </View>
-    );
+  if (showCamera || showScanner) {
+    return renderCameraOrScanner();
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.fullScreenBox}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {ingredientes.map((_, index) => (
-          <View key={index} style={styles.nuevoIngrediente}>
-            <Image
-              source={require('./img/ImgDefecto.png')}
-              style={styles.defaultImage}
-            />
-            <View style={styles.textWrapper}>
-              <Text style={styles.txtIngrediente}>Pastel</Text>
-              <Text style={styles.porciones}>Porciones/10</Text>
+    <ErrorBoundary>
+      <View style={styles.container}>
+        <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
+          {ingredientes.map((ingrediente, index) => (
+            <View key={ingrediente.id} style={styles.nuevoIngrediente}>
+              <Image source={require('./img/ImgDefecto.png')} style={styles.defaultImage} />
+              <View style={styles.textWrapper}>
+                <Text style={styles.txtIngrediente}>{ingrediente.nombre || 'Sin nombre'}</Text>
+                <Text style={styles.porciones}>Porciones/{ingrediente.cantidad || '0'}</Text>
+              </View>
+              <View style={styles.textWrappers}>
+                <Pressable onPress={() => openEditModal(index)}>
+                  <Image source={require('./img/Editar.png')} style={styles.trashImage} />
+                </Pressable>
+                <Pressable onPress={() => removeNuevoIngrediente(ingrediente.id)}>
+                  <Image source={require('./img/Basura.png')} style={styles.trashImage} />
+                </Pressable>
+              </View>
             </View>
-            <View style={styles.textWrappers}>
-              <Pressable onPress={() => openEditModal(index)}>
-                <Image source={require('./img/Editar.png')} style={styles.trashImage} />
-              </Pressable>
-              <Pressable onPress={() => removeNuevoIngrediente(index)}>
-                <Image source={require('./img/Basura.png')} style={styles.trashImage} />
-              </Pressable>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
 
-      <View style={styles.bottomIconsContainer}>
-        <View style={styles.leftIcons}>
-          <Pressable style={styles.iconButton} onPress={openCamera}>
-            <Image source={require('./img/Camara.png')} style={styles.cameraImage} />
-          </Pressable>
-          <Pressable style={styles.iconButton} onPress={openScanner}>
-            <Image source={require('./img/Scanner.png')} style={styles.scannerImage} />
+        <View style={styles.bottomIconsContainer}>
+          <View style={styles.leftIcons}>
+            <Pressable style={styles.iconButton} onPress={openCamera}>
+              <Image source={require('./img/Camara.png')} style={styles.cameraImage} />
+            </Pressable>
+            <Pressable style={styles.iconButton} onPress={openScanner}>
+              <Image source={require('./img/Scanner.png')} style={styles.scannerImage} />
+            </Pressable>
+          </View>
+          <Pressable style={styles.addButton} onPress={() => setIsModalVisible(true)}>
+            <Image source={require('./img/MasCirculo.png')} style={styles.addIcon} />
           </Pressable>
         </View>
-        <Pressable
-          style={styles.addButton}
-          onPress={() => setIsModalVisible(true)}
-        >
-          <Image source={require('./img/MasCirculo.png')} style={styles.addIcon} />
-        </Pressable>
+
+        <AddModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSubmit={addExpiredProduct}
+          nombre={nombre}
+          setNombre={setNombre}
+          cantidad={cantidad}
+          setCantidad={setCantidad}
+          caducidad={caducidad}
+          setCaducidad={setCaducidad}
+        />
+
+        <EditModal
+          visible={isEditModalVisible}
+          onClose={() => setIsEditModalVisible(false)}
+          onSubmit={editIngrediente}
+          nombre={nombre}
+          setNombre={setNombre}
+          cantidad={cantidad}
+          setCantidad={setCantidad}
+          caducidad={caducidad}
+          setCaducidad={setCaducidad}
+        />
       </View>
-
-      {/* Modal for MasIcon (Add) */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isModalVisible}
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setIsModalVisible(false)}
-        >
-          <View
-            style={styles.modalContainer}
-            onStartShouldSetResponder={() => true}
-            onResponderGrant={() => {}}
-          >
-            <View style={styles.titlePanel}>
-              <Text style={styles.modalTitle}>Agregar ingrediente</Text>
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Nombre:</Text>
-              <TextInput
-                style={styles.input}
-                value={nombre}
-                onChangeText={setNombre}
-                placeholder="Escribe el nombre..."
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Cantidad:</Text>
-              <TextInput
-                style={styles.input}
-                value={cantidad}
-                onChangeText={setCantidad}
-                placeholder="Escribe la cantidad..."
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Caducidad:</Text>
-              <TextInput
-                style={styles.input}
-                value={caducidad}
-                onChangeText={setCaducidad}
-                placeholder="Escribe la caducidad..."
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Tipo:</Text>
-              <View
-                style={styles.pickerContainer}
-                onStartShouldSetResponder={() => true}
-                onResponderGrant={() => {}}
-              >
-                <Picker
-                  selectedValue={tipo}
-                  onValueChange={(itemValue) => setTipo(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona un tipo..." value="" />
-                  <Picker.Item label="Opción 1" value="opcion1" />
-                  <Picker.Item label="Opción 2" value="opcion2" />
-                </Picker>
-              </View>
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Unidad:</Text>
-              <View
-                style={styles.pickerContainer}
-                onStartShouldSetResponder={() => true}
-                onResponderGrant={() => {}}
-              >
-                <Picker
-                  selectedValue={unidad}
-                  onValueChange={(itemValue) => setUnidad(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona una unidad..." value="" />
-                  <Picker.Item label="Opción 1" value="opcion1" />
-                  <Picker.Item label="Opción 2" value="opcion2" />
-                </Picker>
-              </View>
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Fecha:</Text>
-              <TextInput
-                style={styles.input}
-                value={caducidad}
-                onChangeText={setCaducidad}
-                placeholder="Escribe la fecha..."
-                placeholderTextColor="#888"
-              />
-            </View>
-            <Pressable
-              style={styles.submitButton}
-              onPress={addExpiredProduct}
-            >
-              <Image
-                source={require('./img/Palomita.png')}
-                style={styles.submitIcon}
-              />
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Modal for Editar (Edit) */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isEditModalVisible}
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setIsEditModalVisible(false)}
-        >
-          <View
-            style={styles.modalContainer}
-            onStartShouldSetResponder={() => true}
-            onResponderGrant={() => {}}
-          >
-            <View style={styles.titlePanel}>
-              <Text style={styles.modalTitle}>Editar ingrediente</Text>
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Nombre:</Text>
-              <TextInput
-                style={styles.input}
-                value={nombre}
-                onChangeText={setNombre}
-                placeholder="Escribe el nombre..."
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Cantidad:</Text>
-              <TextInput
-                style={styles.input}
-                value={cantidad}
-                onChangeText={setCantidad}
-                placeholder="Escribe la cantidad..."
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Caducidad:</Text>
-              <TextInput
-                style={styles.input}
-                value={caducidad}
-                onChangeText={setCaducidad}
-                placeholder="Escribe la caducidad..."
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Tipo:</Text>
-              <View
-                style={styles.pickerContainer}
-                onStartShouldSetResponder={() => true}
-                onResponderGrant={() => {}}
-              >
-                <Picker
-                  selectedValue={tipo}
-                  onValueChange={(itemValue) => setTipo(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona un tipo..." value="" />
-                  <Picker.Item label="Opción 1" value="opcion1" />
-                  <Picker.Item label="Opción 2" value="opcion2" />
-                </Picker>
-              </View>
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Unidad:</Text>
-              <View
-                style={styles.pickerContainer}
-                onStartShouldSetResponder={() => true}
-                onResponderGrant={() => {}}
-              >
-                <Picker
-                  selectedValue={unidad}
-                  onValueChange={(itemValue) => setUnidad(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona una unidad..." value="" />
-                  <Picker.Item label="Opción 1" value="opcion1" />
-                  <Picker.Item label="Opción 2" value="opcion2" />
-                </Picker>
-              </View>
-            </View>
-            <View style={styles.inputRow}>
-              <Text style={styles.modalLabel}>Fecha:</Text>
-              <TextInput
-                style={styles.input}
-                value={caducidad}
-                onChangeText={setCaducidad}
-                placeholder="Escribe la fecha..."
-                placeholderTextColor="#888"
-              />
-            </View>
-            <Pressable
-              style={styles.submitButton}
-              onPress={editIngrediente}
-            >
-              <Image
-                source={require('./img/Palomita.png')}
-                style={styles.submitIcon}
-              />
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-    </View>
+    </ErrorBoundary>
   );
 };
 
 const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+  },
   container: {
     flex: 1,
     marginTop: SCREEN_HEIGHT * 0.04,
@@ -584,6 +394,11 @@ const styles = StyleSheet.create({
     padding: SCREEN_WIDTH * 0.025,
     borderRadius: SCREEN_WIDTH * 0.012,
   },
+  scanAgainText: {
+    color: '#40632F',
+    fontWeight: 'bold',
+    fontSize: SCREEN_WIDTH * 0.04,
+  },
   closeButton: {
     position: 'absolute',
     top: SCREEN_HEIGHT * 0.05,
@@ -603,88 +418,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#CEDFAD',
     padding: SCREEN_WIDTH * 0.025,
     borderRadius: SCREEN_WIDTH * 0.012,
-  },
-  scanAgainText: {
-    color: '#40632F',
-    fontWeight: 'bold',
-    fontSize: SCREEN_WIDTH * 0.04,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: SCREEN_WIDTH * 0.8,
-    backgroundColor: '#fff',
-    borderRadius: SCREEN_WIDTH * 0.05,
-    padding: SCREEN_WIDTH * 0.05,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  titlePanel: {
-    backgroundColor: '#8CA966',
-    borderColor: '#8CA966',
-    borderWidth: SCREEN_WIDTH * 0.003,
-    width: '100%',
-    paddingVertical: SCREEN_HEIGHT * 0.015,
-    borderRadius: SCREEN_WIDTH * 0.02,
-    marginBottom: SCREEN_HEIGHT * 0.02,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: SCREEN_WIDTH * 0.05,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: SCREEN_HEIGHT * 0.02,
-  },
-  modalLabel: {
-    fontSize: SCREEN_WIDTH * 0.045,
-    color: '#40632F',
-    width: SCREEN_WIDTH * 0.25,
-  },
-  input: {
-    flex: 1,
-    height: SCREEN_HEIGHT * 0.05,
-    backgroundColor: '#CAE2B5',
-    borderColor: '#8CA966',
-    borderWidth: SCREEN_WIDTH * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.02,
-    paddingHorizontal: SCREEN_WIDTH * 0.03,
-    fontSize: SCREEN_WIDTH * 0.04,
-    color: '#000',
-  },
-  pickerContainer: {
-    flex: 1,
-    height: SCREEN_HEIGHT * 0.05,
-    backgroundColor: '#CAE2B5',
-    borderColor: '#8CA966',
-    borderWidth: SCREEN_WIDTH * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.02,
-    justifyContent: 'center',
-  },
-  picker: {
-    height: SCREEN_HEIGHT * 0.05,
-    color: '#000',
-  },
-  submitButton: {
-    alignSelf: 'flex-end',
-    marginTop: SCREEN_HEIGHT * 0.02,
-  },
-  submitIcon: {
-    width: SCREEN_WIDTH * 0.07,
-    height: SCREEN_WIDTH * 0.07,
   },
 });
 
@@ -721,4 +454,4 @@ const sHead = StyleSheet.create({
   },
 });
 
-export default EjemploCalendarioPersonalizado;
+export default Refri;

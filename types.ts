@@ -8,5 +8,9 @@ export type RootStackParamList = {
     Recetas: undefined;
     Refri: undefined;
     Iniciar: undefined;
+    ModalRefri: undefined;
+    ModalPlan: undefined;
+    ModalRecetas: undefined;
+    ModalHoy: undefined;
   };
   
