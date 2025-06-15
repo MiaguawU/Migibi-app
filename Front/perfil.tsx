@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'reac
 import { WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from './types';
+import { RootStackParamList } from '../types';
 import { AntDesign } from '@expo/vector-icons';
 import axios from 'axios';
-import PUERTO from './config';
+import PUERTO from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Perfil'>;
@@ -28,60 +28,63 @@ export default function ProfileScreen() {
     Email: '',
     FileImagen: null,
   });
-  
-
 
   useEffect(() => {
-      if (serverMessage !== '') {
-        const timer = setTimeout(() => setServerMessage(''), 5000);
-        return () => clearTimeout(timer);
+    if (serverMessage !== '') {
+      const timer = setTimeout(() => setServerMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [serverMessage]);
+
+  const datosPerfil = async () => {
+    setLoading(true);
+    try {
+      const currentUserStr = await AsyncStorage.getItem('currentUser');
+      if (!currentUserStr) {
+        setServerMessage("No hay un usuario logueado actualmente.");
+        return;
       }
-    }, [serverMessage]);
 
-    const datosPerfil = async () => {
-      setLoading(true);
-      try {
-        const currentUserStr = await AsyncStorage.getItem('currentUser');
-        if (!currentUserStr) {
-          setServerMessage("No hay un usuario logueado actualmente.");
-          return;
-        }
+      const currentUser = JSON.parse(currentUserStr);
+      const userId = currentUser.id;
 
-        const currentUser = JSON.parse(currentUserStr);
-        const userId = currentUser.id;
+      const response = await axios.get(`${PUERTO}/usuarios`, {
+        params: { id_us: userId },
+        headers: { "Content-Type": "application/json" },
+      });
 
-  
-        const response = await axios.get(`${PUERTO}/usuarios`, {
-          params: { id_us: userId },
-          headers: { "Content-Type": "application/json" },
-        });
-  
-        if (response.data.length > 0) {
-          const userData = response.data[0];
-          setFormData((prev) => ({
-            ...prev,
-            Nombre_Usuario: userData.Nombre_Usuario || "No info",
-            foto_perfil: {
-              uri: userData.foto_perfil?.startsWith("http")
-                ? userData.foto_perfil
-                : `${PUERTO}/${userData.foto_perfil}`
-            },            
-            Cohabitantes: userData.Cohabitantes || 0,
-            Email: userData.Email || "No info",
-          }));
-          console.log("URI de la imagen de perfil:", userData.foto_perfil);
+      if (response.data.length > 0) {
+        const userData = response.data[0];
+        const esURLPublica = (url: string) =>
+          /^https?:\/\/.+/i.test(url); // detecta http:// o https://
+        
+        const uriImagen = userData.foto_perfil
+  ? (esURLPublica(userData.foto_perfil)
+      ? userData.foto_perfil
+      : `${PUERTO.replace(/\/$/, '')}/${userData.foto_perfil.replace(/^\//, '')}`)
+  : null;
 
-        } else {
-          setServerMessage("No se encontró información del usuario.");
-        }
-      } catch (error) {
-        console.error("Error al obtener usuario:", error);
-        setServerMessage("No se pudo conectar con el servidor.");
-      } finally {
-        setLoading(false);
+        
+
+        setFormData((prev) => ({
+          ...prev,
+          Nombre_Usuario: userData.Nombre_Usuario || "No info",
+          foto_perfil: uriImagen ? { uri: uriImagen } : null,
+          Cohabitantes: userData.Cohabitantes || '0',
+          Email: userData.Email || "No info",
+        }));
+
+        console.log("Imagen de perfil cargada:", uriImagen);
+      } else {
+        setServerMessage("No se encontró información del usuario.");
       }
-    };
-  
+    } catch (error) {
+      console.error("Error al obtener usuario:", error);
+      setServerMessage("No se pudo conectar con el servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     datosPerfil();
@@ -89,80 +92,62 @@ export default function ProfileScreen() {
 
   const logout = async () => {
     try {
-      // Eliminar currentUser del AsyncStorage
       await AsyncStorage.removeItem('currentUser');
-  
-      // Puedes limpiar más datos si guardaste algo adicional
-      // await AsyncStorage.clear(); // Si deseas limpiar todo el almacenamiento
-  
-      // Mensaje opcional
       setServerMessage("Sesión cerrada correctamente.");
-  
-      // Redirigir al login o pantalla de inicio
       navigation.navigate('Omg');
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       setServerMessage("No se pudo cerrar la sesión. Inténtalo de nuevo.");
     }
   };
-  
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   return (
     <View style={styles.background}>
-      {/* Mensaje del servidor */}
       {serverMessage !== '' && (
         <View style={{ padding: 10, backgroundColor: '#FFD39E', margin: 10, borderRadius: 10 }}>
           <Text style={{ color: '#000', textAlign: 'center' }}>{serverMessage}</Text>
         </View>
       )}
 
-      {/* Flecha de retroceso */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <AntDesign name="arrowleft" size={24} color="#40632F" />
       </TouchableOpacity>
 
-      {/* Botón "Cerrar Sesión" */}
       <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutText}>Cerrar Sesión</Text>
       </TouchableOpacity>
 
-
       <View style={styles.container}>
-        {/* Imagen "bPerfil" */}
-        {formData.foto_perfil?.uri ? (
+      {formData.foto_perfil?.uri ? (
         <Image
           source={{ uri: formData.foto_perfil.uri }}
           style={styles.profileIcon}
-          resizeMode="contain"
+          resizeMode="cover"
         />
       ) : (
-        <Text style={{ marginTop: 20, fontSize: 16, color: '#666' }}>Sin imagen de perfil</Text>
+        <Text style={styles.noImageText}>No hay imagen</Text>
       )}
+
 
 
         <WhiteSpace size="lg" />
 
-        {/* Texto "Usuario" y "MasIcon" al lado */}
         <View style={styles.userContainer}>
           <Text style={styles.title}>{formData.Nombre_Usuario}</Text>
-          <Image source={require('./img/MasIcon.png')} style={styles.masIcon} resizeMode="contain" />
+          <Image source={require('../img/MasIcon.png')} style={styles.masIcon} resizeMode="contain" />
         </View>
         <WhiteSpace size="xl" />
 
-        {/* Email */}
         <View style={styles.infoContainer}>
           <Text style={styles.label}>Correo electrónico</Text>
           <Text style={styles.input}>{formData.Email}</Text>
         </View>
         <WhiteSpace size="lg" />
-
-        {/* Contenedor 1: Tipos de alimentos */}
+        
         <View style={styles.infoContainer}>
           <Text style={styles.label}>Tipos de alimentos que no puedo comer</Text>
           <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('Perfil')}>
@@ -171,7 +156,6 @@ export default function ProfileScreen() {
         </View>
         <WhiteSpace size="lg" />
 
-        {/* Contenedor 2: Cantidad de personas */}
         <View style={styles.infoContainer}>
           <Text style={styles.label}>Cantidad de personas que viven conmigo</Text>
           <TextInput
@@ -183,14 +167,29 @@ export default function ProfileScreen() {
             editable={false}
           />
         </View>
+
+      
+
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  noImageText: {
+    fontSize: 16,
+    color: 'gray',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  footerImage: {
+    width: '100%',
+    height: 150,
+    marginTop: 20,
+    backgroundColor: 'red', // solo para pruebas
+  },   
   message: {
-    color: '#d9534f', // rojo para errores
+    color: '#d9534f',
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
@@ -230,9 +229,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileIcon: {
-    maxWidth: '80%',
-    maxHeight: '40%',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignSelf: 'center',
+    marginTop: 20,
+    backgroundColor: '#ccc', // fallback visual
   },
+  
   userContainer: {
     flexDirection: 'row',
     alignItems: 'center',

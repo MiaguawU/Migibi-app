@@ -12,7 +12,7 @@ import {
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import axios from 'axios';
-import PUERTO from './config';
+import PUERTO from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput } from 'react-native';
 import { Animated } from 'react-native';
@@ -66,6 +66,27 @@ const EjemploCalendarioPersonalizado = () => {
       return () => clearTimeout(timer);
     }
   }, [serverMessage]);
+
+  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+    setScanned(true);
+    setShowScanner(false);
+    setShowCamera(false);
+    
+    try {
+      const response = await axios.get(`${PUERTO}/alimento/${data}`);
+      
+      if (response.status === 200) {
+        setServerMessage("Código escaneado correctamente. Datos recibidos del servidor.");
+        // Aquí puedes hacer algo con response.data si necesitas mostrarlo
+        datosAlimento(); // Refresca la lista
+      } else {
+        setServerMessage("El servidor no devolvió resultados para este código.");
+      }
+    } catch (error) {
+      console.error("Error al enviar código escaneado:", error);
+      setServerMessage("No se pudo conectar con el servidor al escanear.");
+    }
+  };
   
   const eliminarAlimento = async (id: number) => {
     try {
@@ -206,19 +227,19 @@ const EjemploCalendarioPersonalizado = () => {
         <View style={sHead.headerButtonsContainer}>
           <View style={sHead.naveAl}>
             <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image source={require('./img/bHoy1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bHoy1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image source={require('./img/bPlan1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bPlan1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image source={require('./img/bRecetas1.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bRecetas1.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image source={require('./img/bRefri2.png')} style={sHead.headerIcon} />
+              <Image source={require('../img/bRefri2.png')} style={sHead.headerIcon} />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image source={require('./img/bPerfil.png')} style={sHead.headerIcon2} />
+              <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
             </Pressable>
           </View>
         </View>
@@ -230,11 +251,7 @@ const EjemploCalendarioPersonalizado = () => {
       setHasPermission(status === 'granted');
     })();
   }, [navigation]);
-
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-    setScanned(true);
-    alert(`Product code ${data} has been scanned!`);
-  };
+  
 
   const addNuevoIngrediente = () => {
     setIngredientes([...ingredientes, ingredientes.length]);
@@ -296,7 +313,7 @@ const EjemploCalendarioPersonalizado = () => {
           <Text style={styles.closeText}>Cerrar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButtonFull} onPress={addExpiredProduct}>
-          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
+          <Image source={require('../img/MasIcon.png')} style={styles.addIcon} />
         </TouchableOpacity>
       </View>
     );
@@ -329,7 +346,7 @@ const EjemploCalendarioPersonalizado = () => {
           <Text style={styles.closeText}>Cerrar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButtonFull} onPress={addExpiredProduct}>
-          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
+          <Image source={require('../img/MasIcon.png')} style={styles.addIcon} />
         </TouchableOpacity>
       </View>
     );
@@ -391,7 +408,7 @@ const opacity = animatedValues[index];
         </Text>
       </View>
       <TouchableOpacity onPress={() => eliminarAlimento(alimento.id)}>
-        <Image source={require('./img/Basura.png')} style={styles.trashImage} />
+        <Image source={require('../img/Basura.png')} style={styles.trashImage} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -404,14 +421,14 @@ const opacity = animatedValues[index];
       <View style={styles.bottomIconsContainer}>
         <View style={styles.leftIcons}>
           <TouchableOpacity style={styles.iconButton} onPress={openCamera}>
-            <Image source={require('./img/Camara.png')} style={styles.cameraImage} />
+            <Image source={require('../img/Camara.png')} style={styles.cameraImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={openScanner}>
-            <Image source={require('./img/Scanner.png')} style={styles.scannerImage} />
+            <Image source={require('../img/Scanner.png')} style={styles.scannerImage} />
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={addExpiredProduct}>
-          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
+          <Image source={require('../img/MasIcon.png')} style={styles.addIcon} />
         </TouchableOpacity>
       </View>
     </View>

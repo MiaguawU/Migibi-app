@@ -3,14 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'reac
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from './types';
+import { RootStackParamList } from '../types';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session'
+import { useAuthRequest } from 'expo-auth-session/providers/google';
 import axios from 'axios';
-import PUERTO from './config';
+import PUERTO from '../config';
 
+WebBrowser.maybeCompleteAuthSession();
 type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;
-
+{/**
+  sessionNormal = navigation.navigate('Plan')
+  */}
 export default function LoginScreen() {
   const navigation = useNavigation<IniciarScreenNavigationProp>();
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +25,33 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [serverMessage, setServerMessage] = useState('');
 
+  const handleGoogleLogin = async (): Promise<void> => {
+      window.location.href = `${PUERTO}/auth/google`;
+    };
+
+   const [request, response, promptAsync] = Google.useAuthRequest({
+  androidClientId: 'TU_CLIENT_ID_ANDROID.apps.googleusercontent.com',
+});
+
+useEffect(() => {
+  if (response?.type === 'success') {
+    const id_token = (response.authentication as any)?.idToken || (response.authentication as any)?.id_token;
+    enviarTokenAlServidor(id_token);
+  }
+}, [response]);
+
+const enviarTokenAlServidor = async (idToken: string) => {
+  try {
+    const res = await axios.post(`${PUERTO}/auth/mobile/google`, { id_token: idToken });
+    const user = res.data;
+
+    await AsyncStorage.setItem('currentUser', JSON.stringify(user));
+    navigation.navigate('Plan');
+
+  } catch (err) {
+    console.error('Error autenticando con backend:', err);
+  }
+};
 
   const sesionNormal = async () => {
     try {
@@ -131,12 +165,16 @@ export default function LoginScreen() {
         {serverMessage !== '' && (
           <Text style={styles.message}>{serverMessage}</Text>
         )}
+        
+        <TouchableOpacity onPress={() => promptAsync()}>
+  <Image
+    source={require('../img/IconoGoogle.png')}
+    style={styles.googleIcon}
+    resizeMode="contain"
+  />
+</TouchableOpacity>
 
-        <Image
-          source={require('./img/IconoGoogle.png')}
-          style={styles.googleIcon}
-          resizeMode="contain"
-        />
+        
       </View>
     </View>
   );

@@ -3,15 +3,18 @@ import React from 'react';
 import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Omg from './omg';
-import Plan from './plan';
-import Perfil from './perfil';
-import Reg from './Reg';
-import Iniciar from './iniciar'
-import Hoy from './hoy';
-import Recetas from './recetas';
-import Refri from './refri';
+import Omg from './Front/omg';
+import Plan from './Front/plan';
+import Perfil from './Front/perfil';
+import Reg from './Front/Reg';
+import Iniciar from './Front/iniciar'
+import Hoy from './Front/hoy';
+import Recetas from './Front/recetas';
+import Refri from './Front/refri';
+import refriAgregarStock from './Front/refriAgregarStock';
+import RefriEditarStock from './Front/refriEditarStock';
 import { RootStackParamList } from './types';
+import refriEditarStock from './Front/refriEditarStock';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -19,6 +22,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     antoutline: require('@ant-design/icons-react-native/fonts/antoutline.ttf'),
     'Jomhuria': require('./assets/fonts/Jomhuria-Regular.ttf'),
+    'Poppins-Medium': require('./assets/fonts/Poppins-Medium.ttf'),
   });
 
   if (!fontsLoaded) {
@@ -36,6 +40,8 @@ export default function App() {
         <Stack.Screen name="Hoy" component={Hoy} />
         <Stack.Screen name="Recetas" component={Recetas} />
         <Stack.Screen name="Refri" component={Refri} />
+        <Stack.Screen name="refriAgregarStock" component={refriAgregarStock} />
+        <Stack.Screen name="refriEditarStock" component={refriEditarStock} />
       </Stack.Navigator>
     </NavigationContainer>
   );

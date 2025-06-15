@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'reac
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from './types';
+import { RootStackParamList } from '../types';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import axios from 'axios';
-import PUERTO from './config';
+import PUERTO from '../config';
 
 type RegScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reg'>;
 
@@ -140,7 +140,7 @@ export default function EjemploCalendarioPersonalizado() {
 
       <View style={styles.container}>
         <Image
-          source={require('./img/IconoRegistrarse.png')}
+          source={require('../img/IconoRegistrarse.png')}
           style={styles.icon}
           resizeMode="contain"
         />
@@ -229,7 +229,7 @@ export default function EjemploCalendarioPersonalizado() {
                   <Text style={styles.message}>{serverMessage}</Text>
                 )}
         <Image
-          source={require('./img/IconoGoogle.png')}
+          source={require('../img/IconoGoogle.png')}
           style={styles.googleIcon}
           resizeMode="contain"
         />
