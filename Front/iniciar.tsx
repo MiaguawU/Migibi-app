@@ -12,6 +12,7 @@ import * as AuthSession from 'expo-auth-session'
 import { useAuthRequest } from 'expo-auth-session/providers/google';
 import axios from 'axios';
 import PUERTO from '../config';
+import { Platform } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;
@@ -30,7 +31,8 @@ export default function LoginScreen() {
     };
 
    const [request, response, promptAsync] = Google.useAuthRequest({
-  androidClientId: 'TU_CLIENT_ID_ANDROID.apps.googleusercontent.com',
+  androidClientId: '597111015357-h6anv1dfdph3obccmhu57mr1evjj4hl5.apps.googleusercontent.com',
+  webClientId: '597111015357-bkqc2ehr2pmd9372rhgjqekvg8dpp5mc.apps.googleusercontent.com'
 });
 
 useEffect(() => {
@@ -166,14 +168,15 @@ const enviarTokenAlServidor = async (idToken: string) => {
           <Text style={styles.message}>{serverMessage}</Text>
         )}
         
-        <TouchableOpacity onPress={() => promptAsync()}>
-  <Image
-    source={require('../img/IconoGoogle.png')}
-    style={styles.googleIcon}
-    resizeMode="contain"
-  />
-</TouchableOpacity>
-
+        {Platform.OS !== 'web' || request ? (
+  <TouchableOpacity onPress={() => promptAsync()}>
+    <Image
+      source={require('../img/IconoGoogle.png')}
+      style={styles.googleIcon}
+      resizeMode="contain"
+    />
+  </TouchableOpacity>
+) : null}
         
       </View>
     </View>
