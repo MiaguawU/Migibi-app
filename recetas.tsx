@@ -1,19 +1,15 @@
-import React, { Component, useState, useLayoutEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Image,
   Pressable,
+  Image,
   ScrollView,
   Dimensions,
-  Animated,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { Calendar } from 'react-native-calendars';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import { AddModal, EditModal } from './ModalRecetas';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -22,74 +18,35 @@ type RootStackParamList = {
   Recetas: undefined;
   Refri: undefined;
   Perfil: undefined;
+  AgReceta: {
+    isEdit?: boolean;
+    editIndex?: number;
+    recipeName?: string;
+    ingredientInputs?: string[];
+    procedureInputs?: string[];
+    portions?: string;
+    type?: string;
+    onSubmit: (data: {
+      recipeName: string;
+      ingredientInputs: string[];
+      procedureInputs: string[];
+      portions: string;
+      type: string;
+    }) => void;
+  };
 };
 
-// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
+// Obtener las dimensiones de la pantalla
 export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Error Boundary Component
-class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error?: string }> {
-  state = { hasError: false, error: undefined };
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error: error.message };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error: {this.state.error || 'Verifica la consola'}</Text>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 const Recetas = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [ingredientes, setIngredientes] = useState<number[]>([0]);
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [recipeName, setRecipeName] = useState('');
-  const [ingredientInputs, setIngredientInputs] = useState<string[]>(['']);
-  const [procedureInputs, setProcedureInputs] = useState<string[]>(['']);
-  const [portions, setPortions] = useState('');
-  const [type, setType] = useState('');
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const navigateToScreen = (screenName: keyof RootStackParamList) => {
     navigation.navigate(screenName);
-  };
-
-  const slideIn = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const slideOut = () => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setIsModalVisible(false));
-  };
-
-  const slideOutEdit = () => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setIsEditModalVisible(false));
   };
 
   useLayoutEffect(() => {
@@ -107,35 +64,35 @@ const Recetas = () => {
               <Image
                 source={require('./img/bHoy1.png')}
                 style={sHead.headerIcon}
-                onError={() => console.error('Error loading bHoy1.png')}
+                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
               <Image
                 source={require('./img/bPlan1.png')}
                 style={sHead.headerIcon}
-                onError={() => console.error('Error loading bPlan1.png')}
+                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
               <Image
                 source={require('./img/bRecetas2.png')}
                 style={sHead.headerIcon}
-                onError={() => console.error('Error loading bRecetas2.png')}
+                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
               <Image
                 source={require('./img/bRefri1.png')}
                 style={sHead.headerIcon}
-                onError={() => console.error('Error loading bRefri1.png')}
+                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
               <Image
                 source={require('./img/bPerfil.png')}
                 style={sHead.headerIcon2}
-                onError={() => console.error('Error loading bPerfil.png')}
+                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
               />
             </Pressable>
           </View>
@@ -162,155 +119,106 @@ const Recetas = () => {
     setIngredientes(ingredientes.filter((_, i) => i !== index));
   };
 
-  const addExpiredProduct = () => {
+  const addExpiredProduct = (data: {
+    recipeName: string;
+    ingredientInputs: string[];
+    procedureInputs: string[];
+    portions: string;
+    type: string;
+  }) => {
     setScanned(false);
     addNuevoIngrediente();
-    setRecipeName('');
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('');
-    setType('');
-    slideOut();
+    console.log('Receta agregada:', data);
   };
 
-  const editIngrediente = () => {
-    setRecipeName('');
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('');
-    setType('');
-    slideOutEdit();
-    setEditIndex(null);
+  const editIngrediente = (data: {
+    recipeName: string;
+    ingredientInputs: string[];
+    procedureInputs: string[];
+    portions: string;
+    type: string;
+  }, index: number) => {
+    console.log(`Receta editada en índice ${index}:`, data);
   };
 
-  const openEditModal = (index: number) => {
-    setEditIndex(index);
-    setRecipeName('Pastel'); // Placeholder
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('10'); // Placeholder
-    setType('');
-    setIsEditModalVisible(true);
-    slideIn();
+  const openEditScreen = (index: number) => {
+    console.log('Navigating to AgReceta for edit, index:', index);
+    navigation.navigate('AgReceta', {
+      isEdit: true,
+      editIndex: index,
+      recipeName: 'Pastel',
+      ingredientInputs: [''],
+      procedureInputs: [''],
+      portions: '10',
+      type: '',
+      onSubmit: (data) => editIngrediente(data, index),
+    });
   };
-
-  const onDayPress = (day: any) => {
-    setSelectedDate(day.dateString);
-    setShowCalendar(false);
-  };
-
-  const markedDates = selectedDate
-    ? {
-        [selectedDate]: { selected: true, selectedColor: '#CEDFAD' },
-      }
-    : {};
 
   return (
-    <ErrorBoundary>
-      <View style={styles.container}>
-        <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
-          {ingredientes.map((_, index) => (
-            <View key={index} style={styles.nuevoIngrediente}>
-              <Image
-                source={require('./img/ImgDefecto.png')}
-                style={styles.defaultImage}
-                onError={() => console.error('Error loading ImgDefecto.png')}
-              />
-              <View style={styles.textWrapper}>
-                <Text style={styles.txtIngrediente}>Pastel</Text>
-                <Text style={styles.porciones}>Porciones/10</Text>
-              </View>
-              <View style={styles.textWrappers}>
-                <TouchableOpacity onPress={() => openEditModal(index)}>
-                  <Image
-                    source={require('./img/Editar.png')}
-                    style={styles.trashImage}
-                    onError={() => console.error('Error loading Editar.png')}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => removeNuevoIngrediente(index)}>
-                  <Image
-                    source={require('./img/Basura.png')}
-                    style={styles.trashImage}
-                    onError={() => console.error('Error loading Basura.png')}
-                  />
-                </TouchableOpacity>
-              </View>
+    <View style={styles.container}>
+      <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
+        {ingredientes.map((_, index) => (
+          <View key={index} style={styles.nuevoIngrediente}>
+            <Image
+              source={require('./img/ImgDefecto.png')}
+              style={styles.defaultImage}
+              onError={(e) => console.error('Error loading ImgDefecto.png:', e.nativeEvent.error)}
+            />
+            <View style={styles.textWrapper}>
+              <Text style={styles.txtIngrediente}>Pastel</Text>
+              <Text style={styles.porciones}>Porciones/10</Text>
             </View>
-          ))}
-        </ScrollView>
+            <View style={styles.textWrappers}>
+              <Pressable
+                onPress={() => openEditScreen(index)}
+                style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+              >
+                <Image
+                  source={require('./img/Editar.png')}
+                  style={styles.trashImage}
+                  onError={(e) => console.error('Error loading Editar.png:', e.nativeEvent.error)}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  console.log('Pressed Basura for index:', index);
+                  removeNuevoIngrediente(index);
+                }}
+                style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+              >
+                <Image
+                  source={require('./img/Basura.png')}
+                  style={styles.trashImage}
+                  onError={(e) => console.error('Error loading Basura.png:', e.nativeEvent.error)}
+                />
+              </Pressable>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
 
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => {
-            console.log('Opening AddModal with props:', {
-              visible: isModalVisible,
-              recipeName,
-              ingredientInputs,
-              procedureInputs,
-              portions,
-              type,
-            });
-            setIsModalVisible(true);
-            slideIn();
-          }}
-        >
-          <Image
-            source={require('./img/MasCirculo.png')}
-            style={styles.addIcon}
-            onError={() => console.error('Error loading MasCirculo.png')}
-          />
-        </TouchableOpacity>
-
-        <AddModal
-          visible={isModalVisible}
-          onClose={slideOut}
-          onSubmit={addExpiredProduct}
-          recipeName={recipeName}
-          setRecipeName={setRecipeName}
-          ingredientInputs={ingredientInputs}
-          setIngredientInputs={setIngredientInputs}
-          procedureInputs={procedureInputs}
-          setProcedureInputs={setProcedureInputs}
-          portions={portions}
-          setPortions={setPortions}
-          type={type}
-          setType={setType}
-          slideAnim={slideAnim}
+      <Pressable
+        onPress={() => {
+          console.log('Pressed MasCirculo');
+          navigation.navigate('AgReceta', {
+            isEdit: false,
+            onSubmit: addExpiredProduct,
+          });
+        }}
+        style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.5 : 1 }]}
+      >
+        <Image
+          source={require('./img/MasCirculo.png')}
+          style={styles.addIcon}
+          onError={(e) => console.error('Error loading MasCirculo.png:', e.nativeEvent.error)}
         />
-
-        <EditModal
-          visible={isEditModalVisible}
-          onClose={slideOutEdit}
-          onSubmit={editIngrediente}
-          recipeName={recipeName}
-          setRecipeName={setRecipeName}
-          ingredientInputs={ingredientInputs}
-          setIngredientInputs={setIngredientInputs}
-          procedureInputs={procedureInputs}
-          setProcedureInputs={setProcedureInputs}
-          portions={portions}
-          setPortions={setPortions}
-          type={type}
-          setType={setType}
-          slideAnim={slideAnim}
-        />
-      </View>
-    </ErrorBoundary>
+      </Pressable>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-  },
   container: {
     flex: 1,
     marginTop: SCREEN_HEIGHT * 0.04,
@@ -322,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: SCREEN_WIDTH * 0.05,
     borderWidth: SCREEN_WIDTH * 0.005,
     borderColor: '#8CA966',
-    marginBottom: SCREEN_HEIGHT * 0.09, // Space for add button
+    marginBottom: SCREEN_HEIGHT * 0.09,
   },
   scrollContent: {
     padding: SCREEN_WIDTH * 0.05,

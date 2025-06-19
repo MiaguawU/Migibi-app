@@ -4,12 +4,15 @@ import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Omg from './omg';
+import Caducar from './Caducar';
+import Faltante from './Faltante';
 import Plan from './plan';
 import Perfil from './perfil';
 import Reg from './Reg';
 import Iniciar from './iniciar'
 import Hoy from './hoy';
 import Recetas from './recetas';
+import AgReceta from './AgReceta';
 import Refri from './refri';
 import ModalRefri from './refri';
 import ModalPlan from './plan';
@@ -37,12 +40,15 @@ export default function App() {
         <Stack.Screen name="Iniciar" component={Iniciar} />
         <Stack.Screen name="Perfil" component={Perfil} />
         <Stack.Screen name="Reg" component={Reg} />
+        <Stack.Screen name="Caducar" component={Caducar} />
+        <Stack.Screen name="Faltante" component={Faltante} />
         <Stack.Screen name="Hoy" component={Hoy} />
         <Stack.Screen name="Recetas" component={Recetas} />
         <Stack.Screen name="Refri" component={Refri} />
         <Stack.Screen name="ModalRefri" component={Refri} />
         <Stack.Screen name="ModalPlan" component={Plan} />
         <Stack.Screen name="ModalRecetas" component={Recetas} />
+        <Stack.Screen name="AgReceta" component={AgReceta} />
         <Stack.Screen name="ModalHoy" component={Hoy} />
       </Stack.Navigator>
     </NavigationContainer>

@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     width: '80%',
-    backgroundColor: '#CAE2B5',
-    borderColor: '#8CA966',
+    backgroundColor: '#A9D35D',
+    borderColor: '#3E7E1E',
     borderWidth: 2,
     borderRadius: 10,
     padding: 15,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 40,
     backgroundColor: 'white',
-    borderColor: '#8CA966',
+    borderColor: '#3E7E1E',
     borderWidth: 2,
     borderRadius: 10,
     paddingHorizontal: 10,
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   },
   viewButton: {
     backgroundColor: 'white',
-    borderColor: '#8CA966',
+    borderColor: '#3E7E1E',
     borderWidth: 2,
     borderRadius: 10,
     height: 40,

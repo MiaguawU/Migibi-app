@@ -22,6 +22,8 @@ type RootStackParamList = {
   Recetas: undefined;
   Refri: undefined;
   Perfil: undefined;
+  Caducar: undefined;
+  Faltante: undefined;
 };
 
 // Obtener las dimensiones de la pantalla para hacer el diseño responsivo
@@ -179,7 +181,7 @@ export default function EjemploCalendarioPersonalizado() {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={bIn.botonesIn}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
-              <Pressable style={bIn.button} onPress={() => handlePress('faltante')}>
+              <Pressable style={bIn.button} onPress={() => navigateToScreen('Faltante')}>
                 <Image
                   source={selectedButtons.faltante ? require('./img/biFal2.png') : require('./img/biFal.png')}
                   style={bIn.imgbi}
@@ -187,7 +189,7 @@ export default function EjemploCalendarioPersonalizado() {
                 />
                 <Text style={bIn.textbi}>Faltante</Text>
               </Pressable>
-              <Pressable style={bIn.button} onPress={() => handlePress('caducar')}>
+              <Pressable style={bIn.button} onPress={() => navigateToScreen('Caducar')}>
                 <Image
                   source={selectedButtons.caducar ? require('./img/biCa2.png') : require('./img/biCa.png')}
                   style={bIn.imgbi}

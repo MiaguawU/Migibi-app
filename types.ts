@@ -12,5 +12,8 @@ export type RootStackParamList = {
     ModalPlan: undefined;
     ModalRecetas: undefined;
     ModalHoy: undefined;
+    Caducar: undefined;
+    Faltante: undefined;
+    AgReceta: undefined;
   };
   
