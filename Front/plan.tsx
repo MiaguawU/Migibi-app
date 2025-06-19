@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Provider } from '@ant-design/react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { BasicModal, AnimatedModal } from './ModalPlan';
+import { BasicModal, AnimatedModal } from './Componentes/ModalPlan';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {

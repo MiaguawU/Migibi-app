@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'reac
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from './types';
+import { RootStackParamList } from '../types';
 import { AntDesign, Feather } from '@expo/vector-icons';
 
 type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;

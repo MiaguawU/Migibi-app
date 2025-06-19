@@ -13,7 +13,7 @@ import {
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { Provider } from '@ant-design/react-native';
-import { AddModal, EditModal } from './ModalHoy';
+import { AddModal, EditModal } from '../ModalHoy';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {

@@ -2,7 +2,7 @@ import React, { Component, useState, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, Dimensions } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import { AddModal, EditModal } from './ModalRefri';
+import { AddModal, EditModal } from './Componentes/ModalRefri';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {

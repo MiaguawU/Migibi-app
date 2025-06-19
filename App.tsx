@@ -3,21 +3,21 @@ import React from 'react';
 import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Omg from './omg';
-import Caducar from './Caducar';
-import Faltante from './Faltante';
-import Plan from './plan';
-import Perfil from './perfil';
-import Reg from './Reg';
-import Iniciar from './iniciar'
-import Hoy from './hoy';
-import Recetas from './recetas';
-import AgReceta from './AgReceta';
-import Refri from './refri';
-import ModalRefri from './refri';
-import ModalPlan from './plan';
-import ModalRecetas from './recetas';
-import ModalHoy from './hoy';
+import Omg from './Front/omg';
+import Caducar from './Front/Componentes/Caducar';
+import Faltante from './Front/Componentes/Faltante';
+import Plan from './Front/plan';
+import Perfil from './Front/perfil';
+import Reg from './Front/Reg';
+import Iniciar from './Front/iniciar'
+import Hoy from './Front/hoy';
+import Recetas from './Front/recetas';
+import AgReceta from './Front/Componentes/AgReceta';
+import Refri from './Front/refri';
+import ModalRefri from './Front/refri';
+import ModalPlan from './Front/plan';
+import ModalRecetas from './Front/recetas';
+import ModalHoy from './Front/hoy';
 import { RootStackParamList } from './types';
 
 const Stack = createStackNavigator<RootStackParamList>();
