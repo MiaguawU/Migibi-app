@@ -11,6 +11,7 @@ import * as Google from 'expo-auth-session/providers/google'
 import * as AuthSession from 'expo-auth-session';
 import axios from 'axios';
 import PUERTO from '../config';
+import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -28,17 +29,25 @@ const redirectUri = AuthSession.makeRedirectUri({
 });
 
 
+
 useEffect(() => {
     console.log("DEBUG: Generated Redirect URI:", redirectUri);
     // This log is still crucial to verify what makeRedirectUri actually produces.
 }, [redirectUri]);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: '597111015357-h6anv1dfdph3obccmhu57mr1evjj4hl5.apps.googleusercontent.com',
-    webClientId: '597111015357-bkqc2ehr2pmd9372rhgjqekvg8dpp5mc.apps.googleusercontent.com',
-    scopes: ['profile', 'email'],
-    redirectUri, // usa URI de proxy de Expo
-  });
+type AppConfigExtra = {
+  ANDROID_CLIENT_ID: string;
+  WEB_CLIENT_ID: string;
+};
+
+const extra = (Constants.expoConfig?.extra ?? {}) as AppConfigExtra;
+
+const [request, response, promptAsync] = Google.useAuthRequest({
+  androidClientId: extra.ANDROID_CLIENT_ID,
+  webClientId: extra.WEB_CLIENT_ID,
+  scopes: ['profile', 'email'],
+  redirectUri,
+});
 
   useEffect(() => {
     console.log("🔁 redirectUri:", redirectUri);
