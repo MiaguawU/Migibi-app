@@ -68,25 +68,27 @@ const EjemploCalendarioPersonalizado = () => {
   }, [serverMessage]);
 
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    setScanned(true);
-    setShowScanner(false);
-    setShowCamera(false);
-    
-    try {
-      const response = await axios.get(`${PUERTO}/alimento/${data}`);
-      
-      if (response.status === 200) {
-        setServerMessage("Código escaneado correctamente. Datos recibidos del servidor.");
-        // Aquí puedes hacer algo con response.data si necesitas mostrarlo
-        datosAlimento(); // Refresca la lista
-      } else {
-        setServerMessage("El servidor no devolvió resultados para este código.");
-      }
-    } catch (error) {
-      console.error("Error al enviar código escaneado:", error);
-      setServerMessage("No se pudo conectar con el servidor al escanear.");
+  setScanned(true);
+  setShowScanner(false);
+  setShowCamera(false);
+
+  try {
+    const response = await axios.post(`${PUERTO}/escaner`, { codigo: data });
+
+    if (response.status === 200 && response.data.nombreCompleto) {
+      setServerMessage("Código escaneado correctamente. Datos recibidos del servidor.");
+
+      // Navegar a la pantalla del formulario con el nombre
+      //navigation.navigate('refriAgregarStock', {nombreEscaneado: response.data.nombreCompleto,});
+    } else {
+      setServerMessage("El servidor no devolvió resultados para este código.");
     }
-  };
+  } catch (error) {
+    console.error("Error al enviar código escaneado:", error);
+    setServerMessage("No se pudo conectar con el servidor al escanear.");
+  }
+};
+
   
   const eliminarAlimento = async (id: number) => {
     try {

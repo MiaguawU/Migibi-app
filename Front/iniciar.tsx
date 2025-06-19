@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, Platform } from 'react-native';
 import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,18 +7,15 @@ import { RootStackParamList } from '../types';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session'
-import { useAuthRequest } from 'expo-auth-session/providers/google';
+import * as Google from 'expo-auth-session/providers/google'
+import * as AuthSession from 'expo-auth-session';
 import axios from 'axios';
 import PUERTO from '../config';
-import { Platform } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
+
 type IniciarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Iniciar'>;
-{/**
-  sessionNormal = navigation.navigate('Plan')
-  */}
+
 export default function LoginScreen() {
   const navigation = useNavigation<IniciarScreenNavigationProp>();
   const [showPassword, setShowPassword] = useState(false);
@@ -26,34 +23,48 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [serverMessage, setServerMessage] = useState('');
 
-  const handleGoogleLogin = async (): Promise<void> => {
-      window.location.href = `${PUERTO}/auth/google`;
-    };
-
-   const [request, response, promptAsync] = Google.useAuthRequest({
-  androidClientId: '597111015357-h6anv1dfdph3obccmhu57mr1evjj4hl5.apps.googleusercontent.com',
-  webClientId: '597111015357-bkqc2ehr2pmd9372rhgjqekvg8dpp5mc.apps.googleusercontent.com'
+const redirectUri = AuthSession.makeRedirectUri({
+  native: 'https://auth.expo.io/@isisf/migibi',
 });
 
+
 useEffect(() => {
-  if (response?.type === 'success') {
-    const id_token = (response.authentication as any)?.idToken || (response.authentication as any)?.id_token;
-    enviarTokenAlServidor(id_token);
-  }
-}, [response]);
+    console.log("DEBUG: Generated Redirect URI:", redirectUri);
+    // This log is still crucial to verify what makeRedirectUri actually produces.
+}, [redirectUri]);
 
-const enviarTokenAlServidor = async (idToken: string) => {
-  try {
-    const res = await axios.post(`${PUERTO}/auth/mobile/google`, { id_token: idToken });
-    const user = res.data;
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: '597111015357-h6anv1dfdph3obccmhu57mr1evjj4hl5.apps.googleusercontent.com',
+    webClientId: '597111015357-bkqc2ehr2pmd9372rhgjqekvg8dpp5mc.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+    redirectUri, // usa URI de proxy de Expo
+  });
 
-    await AsyncStorage.setItem('currentUser', JSON.stringify(user));
-    navigation.navigate('Plan');
+  useEffect(() => {
+    console.log("🔁 redirectUri:", redirectUri);
 
-  } catch (err) {
-    console.error('Error autenticando con backend:', err);
-  }
-};
+    if (response?.type === 'success') {
+      const idToken = response.authentication?.idToken;
+      if (idToken) {
+        enviarTokenAlServidor(idToken);
+      }
+    }
+  }, [response]);
+
+  const enviarTokenAlServidor = async (idToken: string) => {
+    try {
+      const res = await axios.post(`${PUERTO}/auth/mobile/google`,
+        { id_token: idToken },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      const user = res.data;
+      await AsyncStorage.setItem('currentUser', JSON.stringify(user));
+      navigation.navigate('Plan');
+    } catch (err) {
+      console.error('Error autenticando con backend:', err);
+    }
+  };
 
   const sesionNormal = async () => {
     try {
@@ -61,66 +72,54 @@ const enviarTokenAlServidor = async (idToken: string) => {
       const response = await axios.post(`${PUERTO}/login`, data, {
         headers: { 'Content-Type': 'application/json' },
       });
-  
+
       const { id, username, foto_perfil, Cohabitantes, Email, message } = response.data;
-  
+
       await AsyncStorage.setItem(
         'currentUser',
         JSON.stringify({ id, username, email: Email, foto_perfil, Cohabitantes })
       );
-  
+
       setServerMessage(`Bienvenido, ${username}. ${message}`);
-  
       navigation.navigate('Plan');
-  
+
     } catch (error: unknown) {
       console.error('Error al iniciar sesión:', error);
-  
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data || "Cuenta bloqueada temporalmente (15 min)";
-        setServerMessage(errorMsg); // 👈 Mostrar mensaje del servidor
+        setServerMessage(errorMsg);
       } else {
         setServerMessage("Ocurrió un error inesperado.");
       }
     }
   };
-  
+
   useEffect(() => {
     if (serverMessage !== '') {
       const timer = setTimeout(() => setServerMessage(''), 5000);
       return () => clearTimeout(timer);
     }
   }, [serverMessage]);
-  
-  
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   return (
     <View style={styles.background}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <AntDesign name="arrowleft" size={24} color="#40632F" />
       </TouchableOpacity>
 
       <View style={styles.container}>
-        {/* Espacio adicional arriba del título */}
         <WhiteSpace size="xl" />
         <WhiteSpace size="lg" />
-        
+
         <Text style={styles.title}>¡Inicia Sesión!</Text>
 
-        {/* Triple espacio vertical */}
         <WhiteSpace size="lg" />
         <WhiteSpace size="lg" />
         <WhiteSpace size="lg" />
-
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -156,10 +155,7 @@ const enviarTokenAlServidor = async (idToken: string) => {
         </View>
         <WhiteSpace size="xl" />
 
-        <Button
-          style={styles.button}
-          onPress={sesionNormal}
-        >
+        <Button style={styles.button} onPress={sesionNormal}>
           Iniciar Sesión
         </Button>
         <WhiteSpace size="xl" />
@@ -167,17 +163,16 @@ const enviarTokenAlServidor = async (idToken: string) => {
         {serverMessage !== '' && (
           <Text style={styles.message}>{serverMessage}</Text>
         )}
-        
-        {Platform.OS !== 'web' || request ? (
-  <TouchableOpacity onPress={() => promptAsync()}>
-    <Image
-      source={require('../img/IconoGoogle.png')}
-      style={styles.googleIcon}
-      resizeMode="contain"
-    />
-  </TouchableOpacity>
-) : null}
-        
+
+        {request && (
+          <TouchableOpacity onPress={() => promptAsync({ useProxy: true } as any)}>
+            <Image
+              source={require('../img/IconoGoogle.png')}
+              style={styles.googleIcon}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -191,13 +186,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   message: {
-    color: '#d9534f', // rojo para errores
+    color: '#d9534f',
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 20,
   },
-  
   backButton: {
     position: 'absolute',
     top: 40,
