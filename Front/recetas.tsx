@@ -13,7 +13,8 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation} from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import axios from 'axios';
@@ -27,6 +28,22 @@ type RootStackParamList = {
   Recetas: undefined;
   Refri: undefined;
   Perfil: undefined;
+  AgReceta: {
+    isEdit?: boolean;
+    editIndex?: number;
+    recipeName?: string;
+    ingredientInputs?: string[];
+    procedureInputs?: string[];
+    portions?: string;
+    type?: string;
+    onSubmit: (data: {
+      recipeName: string;
+      ingredientInputs: string[];
+      procedureInputs: string[];
+      portions: string;
+      type: string;
+    }) => void;
+  };
 };
 
 interface CardData {
@@ -41,10 +58,11 @@ interface CardData {
   Id_Usuario_Alta: number;
 }
 
-// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Obtener las dimensiones de la pantalla
+export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const EjemploCalendarioPersonalizado = () => {
+
+const Recetas = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [ingredientes, setIngredientes] = useState<number[]>([0]);
@@ -67,7 +85,6 @@ const EjemploCalendarioPersonalizado = () => {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-
   // Drag-and-drop state
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [draggingType, setDraggingType] = useState<'ingredient' | 'procedure' | null>(null);
@@ -75,9 +92,75 @@ const EjemploCalendarioPersonalizado = () => {
   const procedurePositions = useRef(procedureInputs.map(() => new Animated.Value(0))).current;
   const dragOffset = useRef(new Animated.Value(0)).current;
 
-  const navigateToScreen = (screenName: keyof RootStackParamList) => {
-    navigation.navigate(screenName);
+const navigateToScreen = <T extends keyof RootStackParamList>(
+    screen: T,
+    params?: RootStackParamList[T] // Keep params as optional
+  ) => {
+    // This is the common pattern for forcing a match with complex overloads.
+    // We first cast to 'unknown' to loosen the type checking,
+    // then to the specific type we know it should be for this call.
+    (navigation.navigate as unknown as (
+      screenName: T,
+      params?: RootStackParamList[T]
+    ) => void)(screen, params);
   };
+  
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerBackTitleVisible: false,
+      headerTintColor: '#40632F',
+      headerTitle: '',
+      headerStyle: {
+        height: SCREEN_HEIGHT * 0.15,
+      },
+      headerRight: () => (
+        <View style={sHead.headerButtonsContainer}>
+          <View style={sHead.naveAl}>
+            <Pressable onPress={() => navigateToScreen('Hoy')}>
+              <Image
+                source={require('./img/bHoy1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Plan')}>
+              <Image
+                source={require('./img/bPlan1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Recetas')}>
+              <Image
+                source={require('./img/bRecetas2.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Refri')}>
+              <Image
+                source={require('./img/bRefri1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
+              <Image
+                source={require('./img/bPerfil.png')}
+                style={sHead.headerIcon2}
+                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+          </View>
+        </View>
+      ),
+    });
+
+    (async () => {
+      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+  }, [navigation]);
 
   const slideIn = () => {
     Animated.timing(slideAnim, {
@@ -225,6 +308,40 @@ const EjemploCalendarioPersonalizado = () => {
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
               <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
+=======
+              <Image
+                source={require('./img/bHoy1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Plan')}>
+              <Image
+                source={require('./img/bPlan1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Recetas')}>
+              <Image
+                source={require('./img/bRecetas2.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Refri')}>
+              <Image
+                source={require('./img/bRefri1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
+              />
+            </Pressable>
+            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
+              <Image
+                source={require('./img/bPerfil.png')}
+                style={sHead.headerIcon2}
+                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
+              />
             </Pressable>
           </View>
         </View>
@@ -250,25 +367,40 @@ const EjemploCalendarioPersonalizado = () => {
     setIngredientes(ingredientes.filter((_, i) => i !== index));
   };
 
-  const addExpiredProduct = () => {
+  const addExpiredProduct = (data: {
+    recipeName: string;
+    ingredientInputs: string[];
+    procedureInputs: string[];
+    portions: string;
+    type: string;
+  }) => {
     setScanned(false);
     addNuevoIngrediente();
-    setRecipeName('');
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('');
-    setType('');
-    slideOut();
+    console.log('Receta agregada:', data);
   };
 
-  const editIngrediente = () => {
-    setRecipeName('');
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('');
-    setType('');
-    slideOutEdit();
-    setEditIndex(null);
+  const editIngrediente = (data: {
+    recipeName: string;
+    ingredientInputs: string[];
+    procedureInputs: string[];
+    portions: string;
+    type: string;
+  }, index: number) => {
+    console.log(`Receta editada en índice ${index}:`, data);
+  };
+
+  const openEditScreen = (index: number) => {
+    console.log('Navigating to AgReceta for edit, index:', index);
+    navigation.navigate('AgReceta', {
+      isEdit: true,
+      editIndex: index,
+      recipeName: 'Pastel',
+      ingredientInputs: [''],
+      procedureInputs: [''],
+      portions: '10',
+      type: '',
+      onSubmit: (data) => editIngrediente(data, index),
+    });
   };
 
   const openEditModal = (index: number) => {
@@ -281,43 +413,6 @@ const EjemploCalendarioPersonalizado = () => {
     setIsEditModalVisible(true);
     slideIn();
   };
-
-  const addIngredientInput = () => {
-    setIngredientInputs([...ingredientInputs, '']);
-    ingredientPositions.push(new Animated.Value(0));
-  };
-
-  const updateIngredientInput = (text: string, index: number) => {
-    const updatedInputs = [...ingredientInputs];
-    updatedInputs[index] = text;
-    setIngredientInputs(updatedInputs);
-  };
-
-  const removeIngredientInput = (index: number) => {
-    if (ingredientInputs.length > 1) {
-      setIngredientInputs(ingredientInputs.filter((_, i) => i !== index));
-      ingredientPositions.splice(index, 1);
-    }
-  };
-
-  const addProcedureInput = () => {
-    setProcedureInputs([...procedureInputs, '']);
-    procedurePositions.push(new Animated.Value(0));
-  };
-
-  const updateProcedureInput = (text: string, index: number) => {
-    const updatedInputs = [...procedureInputs];
-    updatedInputs[index] = text;
-    setProcedureInputs(updatedInputs);
-  };
-
-  const removeProcedureInput = (index: number) => {
-    if (procedureInputs.length > 1) {
-      setProcedureInputs(procedureInputs.filter((_, i) => i !== index));
-      procedurePositions.splice(index, 1);
-    }
-  };
-
   const onDayPress = (day: any) => {
     setSelectedDate(day.dateString);
     setShowCalendar(false);
@@ -329,53 +424,14 @@ const EjemploCalendarioPersonalizado = () => {
       }
     : {};
 
-  const createPanResponder = (index: number, type: 'ingredient' | 'procedure') => {
-    const positions = type === 'ingredient' ? ingredientPositions : procedurePositions;
-    const inputs = type === 'ingredient' ? ingredientInputs : procedureInputs;
-    const setInputs = type === 'ingredient' ? setIngredientInputs : setProcedureInputs;
+ 
 
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        setDraggingIndex(index);
-        setDraggingType(type);
-        dragOffset.setValue(0);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        dragOffset.setValue(gestureState.dy);
-
-        const itemHeight = SCREEN_HEIGHT * 0.07;
-        const relativePosition = gestureState.dy / itemHeight;
-        const newIndex = Math.max(0, Math.min(inputs.length - 1, index + Math.round(relativePosition)));
-
-        if (newIndex !== index) {
-          const newInputs = [...inputs];
-          const [movedItem] = newInputs.splice(index, 1);
-          newInputs.splice(newIndex, 0, movedItem);
-          setInputs(newInputs);
-
-          const newPositions = [...positions];
-          const [movedPosition] = newPositions.splice(index, 1);
-          newPositions.splice(newIndex, 0, movedPosition);
-          positions.forEach((pos, i) => pos.setValue(0));
-          setDraggingIndex(newIndex);
-        }
-      },
-      onPanResponderRelease: () => {
-        setDraggingIndex(null);
-        setDraggingType(null);
-        dragOffset.setValue(0);
-        positions.forEach((pos) => pos.setValue(0));
-      },
-    });
-  };
-
-  return (
+   return (
     <View style={styles.container}>
       {serverMessage !== '' && (
                         <Text style={styles.message}>{serverMessage}</Text>
                       )}
-              <TextInput
+         <TextInput
                   placeholder="Buscar alimento..."
                   placeholderTextColor="#555"
                   value={searchTerm}
@@ -413,310 +469,22 @@ const EjemploCalendarioPersonalizado = () => {
   ))}
 </ScrollView>
 
-
-      <TouchableOpacity
-        style={styles.addButton}
+      <Pressable
         onPress={() => {
-          setIsModalVisible(true);
-          slideIn();
+          console.log('Pressed MasCirculo');
+          navigation.navigate('AgReceta', {
+            isEdit: false,
+            onSubmit: addExpiredProduct,
+          });
         }}
+        style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.5 : 1 }]}
       >
-        <Image source={require('../img/MasCirculo.png')} style={styles.addIcon} />
-      </TouchableOpacity>
-
-      {/* Modal for MasIcon (Add) */}
-      <Modal transparent={true} visible={isModalVisible} onRequestClose={slideOut}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={slideOut}>
-          <Animated.View
-            style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]}
-          >
-            <View style={styles.modalHandle} />
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.nameInput}
-                value={recipeName}
-                onChangeText={setRecipeName}
-                placeholder="Nombre"
-                placeholderTextColor="#888"
-              />
-              <View style={styles.actionIcons}>
-                <TouchableOpacity onPress={addExpiredProduct}>
-                  <Image source={require('../img/Palomita.png')} style={styles.actionIcon} />
-                </TouchableOpacity>
-                <TouchableOpacity>
-                  <Image source={require('../img/Sarten.png')} style={styles.actionIcon} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Ingredientes</Text>
-              <ScrollView style={styles.panelScroll} nestedScrollEnabled={true}>
-                {ingredientInputs.map((value, index) => (
-                  <Animated.View
-                    key={index}
-                    style={[
-                      styles.inputWithIcons,
-                      {
-                        transform: [
-                          {
-                            translateY:
-                              draggingIndex === index && draggingType === 'ingredient'
-                                ? dragOffset
-                                : ingredientPositions[index],
-                          },
-                        ],
-                        zIndex: draggingIndex === index && draggingType === 'ingredient' ? 10 : 0,
-                        opacity: draggingIndex === index && draggingType === 'ingredient' ? 0.8 : 1,
-                        backgroundColor:
-                          draggingIndex === index && draggingType === 'ingredient'
-                            ? '#f0f0f0'
-                            : 'transparent',
-                      },
-                    ]}
-                  >
-                    <View
-                      {...createPanResponder(index, 'ingredient').panHandlers}
-                      style={styles.dragHandle}
-                    >
-                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
-                    </View>
-                    <TextInput
-                      style={styles.panelInput}
-                      value={value}
-                      onChangeText={(text) => updateIngredientInput(text, index)}
-                      placeholder={`Ingrediente ${index + 1}`}
-                      placeholderTextColor="#888"
-                    />
-                    <TouchableOpacity onPress={() => removeIngredientInput(index)}>
-                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
-              </ScrollView>
-              <TouchableOpacity style={styles.panelAddButton} onPress={addIngredientInput}>
-                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Procedimiento</Text>
-              <ScrollView style={styles.panelScroll} nestedScrollEnabled={true}>
-                {procedureInputs.map((value, index) => (
-                  <Animated.View
-                    key={index}
-                    style={[
-                      styles.inputWithIcons,
-                      {
-                        transform: [
-                          {
-                            translateY:
-                              draggingIndex === index && draggingType === 'procedure'
-                                ? dragOffset
-                                : procedurePositions[index],
-                          },
-                        ],
-                        zIndex: draggingIndex === index && draggingType === 'procedure' ? 10 : 0,
-                        opacity: draggingIndex === index && draggingType === 'procedure' ? 0.8 : 1,
-                        backgroundColor:
-                          draggingIndex === index && draggingType === 'procedure'
-                            ? '#f0f0f0'
-                            : 'transparent',
-                      },
-                    ]}
-                  >
-                    <View
-                      {...createPanResponder(index, 'procedure').panHandlers}
-                      style={styles.dragHandle}
-                    >
-                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
-                    </View>
-                    <TextInput
-                      style={styles.panelInput}
-                      value={value}
-                      onChangeText={(text) => updateProcedureInput(text, index)}
-                      placeholder={`Paso ${index + 1}`}
-                      placeholderTextColor="#888"
-                    />
-                    <TouchableOpacity onPress={() => removeProcedureInput(index)}>
-                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
-              </ScrollView>
-              <TouchableOpacity style={styles.panelAddButton} onPress={addProcedureInput}>
-                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.bottomSection}>
-              <Image source={require('../img/Compartir.png')} style={styles.bottomIcon} />
-              <TextInput
-                style={styles.bottomInput}
-                value={portions}
-                onChangeText={setPortions}
-                placeholder="Porciones"
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.bottomInput}
-                value={type}
-                onChangeText={setType}
-                placeholder="Tipo"
-                placeholderTextColor="#888"
-              />
-            </View>
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal for Editar (Edit) */}
-      <Modal transparent={true} visible={isEditModalVisible} onRequestClose={slideOutEdit}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={slideOutEdit}>
-          <Animated.View
-            style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]}
-          >
-            <View style={styles.modalHandle} />
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.nameInput}
-                value={recipeName}
-                onChangeText={setRecipeName}
-                placeholder="Nombre"
-                placeholderTextColor="#888"
-              />
-              <View style={styles.actionIcons}>
-                <TouchableOpacity onPress={editIngrediente}>
-                  <Image source={require('../img/Palomita.png')} style={styles.actionIcon} />
-                </TouchableOpacity>
-                <TouchableOpacity>
-                  <Image source={require('../img/Sarten.png')} style={styles.actionIcon} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Ingredientes</Text>
-              <ScrollView style={styles.panelScroll} nestedScrollEnabled={true}>
-                {ingredientInputs.map((value, index) => (
-                  <Animated.View
-                    key={index}
-                    style={[
-                      styles.inputWithIcons,
-                      {
-                        transform: [
-                          {
-                            translateY:
-                              draggingIndex === index && draggingType === 'ingredient'
-                                ? dragOffset
-                                : ingredientPositions[index],
-                          },
-                        ],
-                        zIndex: draggingIndex === index && draggingType === 'ingredient' ? 10 : 0,
-                        opacity: draggingIndex === index && draggingType === 'ingredient' ? 0.8 : 1,
-                        backgroundColor:
-                          draggingIndex === index && draggingType === 'ingredient'
-                            ? '#f0f0f0'
-                            : 'transparent',
-                      },
-                    ]}
-                  >
-                    <View
-                      {...createPanResponder(index, 'ingredient').panHandlers}
-                      style={styles.dragHandle}
-                    >
-                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
-                    </View>
-                    <TextInput
-                      style={styles.panelInput}
-                      value={value}
-                      onChangeText={(text) => updateIngredientInput(text, index)}
-                      placeholder={`Ingrediente ${index + 1}`}
-                      placeholderTextColor="#888"
-                    />
-                    <TouchableOpacity onPress={() => removeIngredientInput(index)}>
-                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
-              </ScrollView>
-              <TouchableOpacity style={styles.panelAddButton} onPress={addIngredientInput}>
-                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Procedimiento</Text>
-              <ScrollView style={styles.panelScroll} nestedScrollEnabled={true}>
-                {procedureInputs.map((value, index) => (
-                  <Animated.View
-                    key={index}
-                    style={[
-                      styles.inputWithIcons,
-                      {
-                        transform: [
-                          {
-                            translateY:
-                              draggingIndex === index && draggingType === 'procedure'
-                                ? dragOffset
-                                : procedurePositions[index],
-                          },
-                        ],
-                        zIndex: draggingIndex === index && draggingType === 'procedure' ? 10 : 0,
-                        opacity: draggingIndex === index && draggingType === 'procedure' ? 0.8 : 1,
-                        backgroundColor:
-                          draggingIndex === index && draggingType === 'procedure'
-                            ? '#f0f0f0'
-                            : 'transparent',
-                      },
-                    ]}
-                  >
-                    <View
-                      {...createPanResponder(index, 'procedure').panHandlers}
-                      style={styles.dragHandle}
-                    >
-                      <Image source={require('../img/Deslizador.png')} style={styles.dragIcon} />
-                    </View>
-                    <TextInput
-                      style={styles.panelInput}
-                      value={value}
-                      onChangeText={(text) => updateProcedureInput(text, index)}
-                      placeholder={`Paso ${index + 1}`}
-                      placeholderTextColor="#888"
-                    />
-                    <TouchableOpacity onPress={() => removeProcedureInput(index)}>
-                      <Image source={require('../img/Basura.png')} style={styles.trashIcon} />
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
-              </ScrollView>
-              <TouchableOpacity style={styles.panelAddButton} onPress={addProcedureInput}>
-                <Image source={require('../img/MasIcon.png')} style={styles.panelAddIcon} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.bottomSection}>
-              <Image source={require('../img/Compartir.png')} style={styles.bottomIcon} />
-              <TextInput
-                style={styles.bottomInput}
-                value={portions}
-                onChangeText={setPortions}
-                placeholder="Porciones"
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.bottomInput}
-                value={type}
-                onChangeText={setType}
-                placeholder="Tipo"
-                placeholderTextColor="#888"
-              />
-            </View>
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
+        <Image
+          source={require('./img/MasCirculo.png')}
+          style={styles.addIcon}
+          onError={(e) => console.error('Error loading MasCirculo.png:', e.nativeEvent.error)}
+        />
+      </Pressable>
     </View>
   );
 };
@@ -740,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: SCREEN_WIDTH * 0.05,
     borderWidth: SCREEN_WIDTH * 0.005,
     borderColor: '#8CA966',
-    marginBottom: SCREEN_HEIGHT * 0.09, // Space for add button
+    marginBottom: SCREEN_HEIGHT * 0.09, 
   },
   scrollContent: {
     padding: SCREEN_WIDTH * 0.05,
@@ -963,4 +731,4 @@ const sHead = StyleSheet.create({
   },
 });
 
-export default EjemploCalendarioPersonalizado;
+export default Recetas;

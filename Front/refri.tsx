@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useEffect} from 'react';
+import React, { useState, useLayoutEffect, useEffect, Component } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import PUERTO from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput } from 'react-native';
 import { Animated } from 'react-native';
-
+import { AddModal, EditModal } from './Componentes/ModalRefri';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -40,20 +40,53 @@ interface CardData {
   Activo: number;
   Id_Usuario_Alta: number;
 }
+// Tipo para los ingredientes
+type Ingrediente = {
+  id: number;
+  nombre: string;
+  cantidad: string;
+  caducidad: string;
+};
 
-// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Obtener las dimensiones de la pantalla
+export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const EjemploCalendarioPersonalizado = () => {
+// Error Boundary Component
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error al renderizar la pantalla. Verifica la consola.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const Refri = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [ingredientes, setIngredientes] = useState<number[]>([0]);
   const [alimentosPerecederos, setAlimentosPerecederos] = useState<CardData[]>([]);
   const [alimentosNoPerecederos, setAlimentosNoPerecederos] = useState<CardData[]>([]);
   const [serverMessage, setServerMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [nombre, setNombre] = useState('');
+  const [cantidad, setCantidad] = useState('');
+  const [caducidad, setCaducidad] = useState('');
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const navigateToScreen = (screenName: keyof RootStackParamList) => {
@@ -256,11 +289,17 @@ const EjemploCalendarioPersonalizado = () => {
   
 
   const addNuevoIngrediente = () => {
-    setIngredientes([...ingredientes, ingredientes.length]);
+    const newIngrediente: Ingrediente = {
+      id: ingredientes.length,
+      nombre,
+      cantidad,
+      caducidad,
+    };
+    setIngredientes([...ingredientes, newIngrediente]);
   };
 
-  const removeNuevoIngrediente = (index: number) => {
-    setIngredientes(ingredientes.filter((_, i) => i !== index));
+  const removeNuevoIngrediente = (id: number) => {
+    setIngredientes(ingredientes.filter((ing) => ing.id !== id));
   };
 
   const addExpiredProduct = () => {
@@ -268,6 +307,33 @@ const EjemploCalendarioPersonalizado = () => {
     setShowCamera(false);
     setShowScanner(false);
     addNuevoIngrediente();
+    setNombre('');
+    setCantidad('');
+    setCaducidad('');
+    setIsModalVisible(false);
+  };
+
+  const editIngrediente = () => {
+    if (editIndex !== null) {
+      const updatedIngredientes = ingredientes.map((ing, index) =>
+        index === editIndex ? { ...ing, nombre, cantidad, caducidad } : ing
+      );
+      setIngredientes(updatedIngredientes);
+    }
+    setNombre('');
+    setCantidad('');
+    setCaducidad('');
+    setIsEditModalVisible(false);
+    setEditIndex(null);
+  };
+
+  const openEditModal = (index: number) => {
+    const ingrediente = ingredientes[index];
+    setEditIndex(index);
+    setNombre(ingrediente.nombre);
+    setCantidad(ingrediente.cantidad);
+    setCaducidad(ingrediente.caducidad);
+    setIsEditModalVisible(true);
   };
 
   const openCamera = () => {
@@ -288,7 +354,7 @@ const EjemploCalendarioPersonalizado = () => {
     }
   };
 
-  if (showCamera) {
+  const renderCameraOrScanner = () => {
     if (hasPermission === null) {
       return <Text>Requesting camera permission</Text>;
     }
@@ -304,22 +370,22 @@ const EjemploCalendarioPersonalizado = () => {
           barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
         />
         {scanned && (
-          <TouchableOpacity
-            style={styles.scanAgainButtonFull}
-            onPress={() => setScanned(false)}
-          >
+          <Pressable style={styles.scanAgainButtonFull} onPress={() => setScanned(false)}>
             <Text style={styles.scanAgainText}>Scan Again</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
-        <TouchableOpacity style={styles.closeButton} onPress={() => setShowCamera(false)}>
+        <Pressable
+          style={styles.closeButton}
+          onPress={() => (showCamera ? setShowCamera(false) : setShowScanner(false))}
+        >
           <Text style={styles.closeText}>Cerrar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addButtonFull} onPress={addExpiredProduct}>
-          <Image source={require('../img/MasIcon.png')} style={styles.addIcon} />
-        </TouchableOpacity>
+        </Pressable>
+        <Pressable style={styles.addButtonFull} onPress={addExpiredProduct}>
+          <Image source={require('./img/MasIcon.png')} style={styles.addIcon} />
+        </Pressable>
       </View>
     );
-  }
+  };
 
   if (showScanner) {
     if (hasPermission === null) {
@@ -355,6 +421,7 @@ const EjemploCalendarioPersonalizado = () => {
   }
 
   return (
+    <ErrorBoundary>
     <View style={styles.container}>
       {serverMessage !== '' && (
                   <Text style={styles.message}>{serverMessage}</Text>
@@ -375,11 +442,10 @@ const EjemploCalendarioPersonalizado = () => {
               fontSize: 16,
             }}
           />
+          
       <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
         
-
-
-{filteredAlimentos.map((alimento, index) => {
+        {filteredAlimentos.map((alimento, index) => {
  
  const translateY = animatedValues[index].interpolate({
   inputRange: [0, 1],
@@ -409,31 +475,58 @@ const opacity = animatedValues[index];
           {alimento.fecha}
         </Text>
       </View>
-      <TouchableOpacity onPress={() => eliminarAlimento(alimento.id)}>
-        <Image source={require('../img/Basura.png')} style={styles.trashImage} />
-      </TouchableOpacity>
+      <View style={styles.textWrappers}>
+                <Pressable onPress={() => openEditModal(index)}>
+                  <Image source={require('./img/Editar.png')} style={styles.trashImage} />
+                </Pressable>
+                <Pressable onPress={() => eliminarAlimento(alimento.id)}>
+                  <Image source={require('./img/Basura.png')} style={styles.trashImage} />
+                </Pressable>
+              </View>
     </Animated.View>
   );
 })}
+</ScrollView>
 
-
-
-      </ScrollView>
-
-      <View style={styles.bottomIconsContainer}>
-        <View style={styles.leftIcons}>
-          <TouchableOpacity style={styles.iconButton} onPress={openCamera}>
-            <Image source={require('../img/Camara.png')} style={styles.cameraImage} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={openScanner}>
-            <Image source={require('../img/Scanner.png')} style={styles.scannerImage} />
-          </TouchableOpacity>
+        <View style={styles.bottomIconsContainer}>
+          <View style={styles.leftIcons}>
+            <Pressable style={styles.iconButton} onPress={openCamera}>
+              <Image source={require('./img/Camara.png')} style={styles.cameraImage} />
+            </Pressable>
+            <Pressable style={styles.iconButton} onPress={openScanner}>
+              <Image source={require('./img/Scanner.png')} style={styles.scannerImage} />
+            </Pressable>
+          </View>
+          <Pressable style={styles.addButton} onPress={() => setIsModalVisible(true)}>
+            <Image source={require('./img/MasCirculo.png')} style={styles.addIcon} />
+          </Pressable>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={addExpiredProduct}>
-          <Image source={require('../img/MasIcon.png')} style={styles.addIcon} />
-        </TouchableOpacity>
+
+        <AddModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSubmit={addExpiredProduct}
+          nombre={nombre}
+          setNombre={setNombre}
+          cantidad={cantidad}
+          setCantidad={setCantidad}
+          caducidad={caducidad}
+          setCaducidad={setCaducidad}
+        />
+
+        <EditModal
+          visible={isEditModalVisible}
+          onClose={() => setIsEditModalVisible(false)}
+          onSubmit={editIngrediente}
+          nombre={nombre}
+          setNombre={setNombre}
+          cantidad={cantidad}
+          setCantidad={setCantidad}
+          caducidad={caducidad}
+          setCaducidad={setCaducidad}
+        />
       </View>
-    </View>
+    </ErrorBoundary>
   );
 };
 
@@ -445,21 +538,31 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 20,
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+  },
   container: {
     flex: 1,
-    marginTop: SCREEN_HEIGHT * 0.04, // Aumentado de 0.02 a 0.04 para más separación
+    marginTop: SCREEN_HEIGHT * 0.04,
     padding: SCREEN_WIDTH * 0.05,
   },
   fullScreenBox: {
     flex: 1,
     backgroundColor: '#CAE2B5',
     borderRadius: SCREEN_WIDTH * 0.05,
-    borderWidth: SCREEN_WIDTH * 0.005, 
+    borderWidth: SCREEN_WIDTH * 0.005,
     borderColor: '#8CA966',
   },
   scrollContent: {
     padding: SCREEN_WIDTH * 0.05,
-    paddingBottom: SCREEN_HEIGHT * 0.15,
+    paddingBottom: SCREEN_HEIGHT * 0.05,
   },
   nuevoIngrediente: {
     flexDirection: 'row',
@@ -475,22 +578,26 @@ const styles = StyleSheet.create({
     marginRight: SCREEN_WIDTH * 0.025,
   },
   trashImage: {
-    width: SCREEN_WIDTH * 0.05,
-    height: SCREEN_WIDTH * 0.05,
+    width: SCREEN_WIDTH * 0.042,
+    height: SCREEN_WIDTH * 0.042,
     marginLeft: SCREEN_WIDTH * 0.025,
   },
   textWrapper: {
     flex: 1,
     justifyContent: 'center',
   },
+  textWrappers: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   txtIngrediente: {
     backgroundColor: 'white',
     color: '#000000',
-    fontSize: SCREEN_WIDTH * 0.035,
+    fontSize: SCREEN_WIDTH * 0.032,
     paddingHorizontal: SCREEN_WIDTH * 0.02,
     paddingVertical: SCREEN_HEIGHT * 0.005,
     borderRadius: SCREEN_WIDTH * 0.025,
-    marginBottom: SCREEN_HEIGHT * 0.01,
+    marginBottom: SCREEN_HEIGHT * 0.001,
   },
   porciones: {
     backgroundColor: '#E0E0E0',
@@ -502,16 +609,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   bottomIconsContainer: {
-    position: 'absolute',
-    bottom: SCREEN_HEIGHT * 0.03,
-    left: SCREEN_WIDTH * 0.1,
-    right: SCREEN_WIDTH * 0.1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: SCREEN_WIDTH * 0.05,
+    marginTop: SCREEN_HEIGHT * 0.01,
+    marginBottom: SCREEN_HEIGHT * 0.03,
   },
   leftIcons: {
     flexDirection: 'row',
+    marginLeft: -SCREEN_WIDTH * 0.02,
   },
   iconButton: {
     backgroundColor: '#CEDFAD',
@@ -531,6 +638,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#CEDFAD',
     padding: SCREEN_WIDTH * 0.025,
     borderRadius: SCREEN_WIDTH * 0.012,
+    marginRight: -SCREEN_WIDTH * 0.02,
   },
   addIcon: {
     width: SCREEN_WIDTH * 0.08,
@@ -549,6 +657,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#CEDFAD',
     padding: SCREEN_WIDTH * 0.025,
     borderRadius: SCREEN_WIDTH * 0.012,
+  },
+  scanAgainText: {
+    color: '#40632F',
+    fontWeight: 'bold',
+    fontSize: SCREEN_WIDTH * 0.04,
   },
   closeButton: {
     position: 'absolute',
@@ -569,11 +682,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#CEDFAD',
     padding: SCREEN_WIDTH * 0.025,
     borderRadius: SCREEN_WIDTH * 0.012,
-  },
-  scanAgainText: {
-    color: '#40632F',
-    fontWeight: 'bold',
-    fontSize: SCREEN_WIDTH * 0.04,
   },
 });
 
@@ -610,4 +718,4 @@ const sHead = StyleSheet.create({
   },
 });
 
-export default EjemploCalendarioPersonalizado;
+export default Refri;
