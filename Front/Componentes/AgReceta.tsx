@@ -129,7 +129,7 @@ const AgReceta = () => {
               />
               <Pressable onPress={() => removeIngredientInput(index)} style={styles.removeButton}>
                 <Image
-                  source={require('./img/Basura.png')}
+                  source={require('../../img/Basura.png')}
                   style={styles.removeIcon}
                   onError={(e) => console.error('Error loading Basura.png:', e.nativeEvent.error)}
                 />
