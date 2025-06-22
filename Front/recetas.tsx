@@ -13,12 +13,12 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import axios from 'axios';
-import PUERTO from '../config';
+import PUERTO from '../config'; // Make sure this path is correct
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define el tipo de las pantallas para la navegación
@@ -50,8 +50,8 @@ interface CardData {
   id: number;
   title: string;
   portions: string;
-  calories: string; 
-  time: string; 
+  calories: string;
+  time: string;
   editar: boolean;
   image: string;
   Activo: number;
@@ -60,7 +60,6 @@ interface CardData {
 
 // Obtener las dimensiones de la pantalla
 export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 
 const Recetas = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -85,14 +84,14 @@ const Recetas = () => {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Drag-and-drop state
+  // Drag-and-drop state (not directly used in the provided JSX, but kept for context)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [draggingType, setDraggingType] = useState<'ingredient' | 'procedure' | null>(null);
   const ingredientPositions = useRef(ingredientInputs.map(() => new Animated.Value(0))).current;
   const procedurePositions = useRef(procedureInputs.map(() => new Animated.Value(0))).current;
   const dragOffset = useRef(new Animated.Value(0)).current;
 
-const navigateToScreen = <T extends keyof RootStackParamList>(
+  const navigateToScreen = <T extends keyof RootStackParamList>(
     screen: T,
     params?: RootStackParamList[T] // Keep params as optional
   ) => {
@@ -104,7 +103,7 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       params?: RootStackParamList[T]
     ) => void)(screen, params);
   };
-  
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerBackTitleVisible: false,
@@ -160,7 +159,7 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       const { status } = await BarCodeScanner.requestPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-  }, [navigation]);
+  }, [navigation]); // Added navigation to dependency array
 
   const slideIn = () => {
     Animated.timing(slideAnim, {
@@ -183,10 +182,10 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       const userId = currentUser.id;
 
       if (isNaN(userId)) {
-        setServerMessage("ID de usuario inválido.");
+        setServerMessage('ID de usuario inválido.');
         return;
       }
-  
+
       // Obtener recetas del servidor
       const response = await axios.get(`${PUERTO}/recetaGeneral`);
       if (response.data) {
@@ -199,28 +198,27 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
           .map((receta: any) => {
             const isDefault = receta.Id_Usuario_Alta === 1;
             const puedeEditar = !isDefault || userId === 1;
-          
+
             return {
-              id: receta.Id_Receta || ' ',
-              title: receta.Nombre || ' ',
-              portions: receta.Porciones || ' ',
+              id: receta.Id_Receta || 0, // Ensure id is a number, default to 0 if null/undefined
+              title: receta.Nombre || '',
+              portions: receta.Porciones || '',
               calories: String(receta.Calorias || '0'),
               time: String(receta.Tiempo || '0'),
               image: receta.Imagen_receta ? `${PUERTO}${receta.Imagen_receta}` : 'defRec.png',
               Activo: receta.Activo,
               Id_Usuario_Alta: receta.Id_Usuario_Alta,
-              editar: puedeEditar
+              editar: puedeEditar,
             };
           });
-          
-  
+
         // Actualizar el estado con las recetas filtradas
         setRecipes(recData);
-        console.log("Recetas obtenidas exitosamente");
+        console.log('Recetas obtenidas exitosamente');
       }
     } catch (error) {
-      console.error("Error al obtener recetas", error);
-      setServerMessage("No se pudo conectar con el servidor o ID de usuario inválido.");
+      console.error('Error al obtener recetas', error);
+      setServerMessage('No se pudo conectar con el servidor o ID de usuario inválido.');
     } finally {
       setLoading(false); // Asegurar que el estado de carga se detenga
     }
@@ -231,17 +229,17 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       const response = await axios.put(`${PUERTO}/recetaGeneral/${id}`);
       if (response.status === 200) {
         setServerMessage(`Receta eliminada exitosamente.`);
-        datosReceta(); 
+        datosReceta();
       }
     } catch (error) {
-      console.error("Error al eliminar receta:", error);
-      setServerMessage("No se pudo eliminar la receta.");
+      console.error('Error al eliminar receta:', error);
+      setServerMessage('No se pudo eliminar la receta.');
     }
   };
 
   useEffect(() => {
     datosReceta();
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   useEffect(() => {
     const filtered = recipes.filter((recipe) => {
@@ -254,18 +252,18 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       );
     });
     setFilteredRecipes(filtered);
-  }, [searchTerm, recipes]);
+  }, [searchTerm, recipes]); // Dependencies: searchTerm and recipes
 
   const handleSearch = (value: string) => {
     setSearchTerm(value.toLowerCase());
   };
 
   useEffect(() => {
-      if (serverMessage !== '') {
-        const timer = setTimeout(() => setServerMessage(''), 5000);
-        return () => clearTimeout(timer);
-      }
-    }, [serverMessage]);
+    if (serverMessage !== '') {
+      const timer = setTimeout(() => setServerMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [serverMessage]); // Dependency: serverMessage
 
   const slideOut = () => {
     Animated.timing(slideAnim, {
@@ -282,77 +280,6 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       useNativeDriver: true,
     }).start(() => setIsEditModalVisible(false));
   };
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerBackTitleVisible: false,
-      headerTintColor: '#40632F',
-      headerTitle: '',
-      headerStyle: {
-        height: SCREEN_HEIGHT * 0.15,
-      },
-      headerRight: () => (
-        <View style={sHead.headerButtonsContainer}>
-          <View style={sHead.naveAl}>
-            <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image source={require('../img/bHoy1.png')} style={sHead.headerIcon} />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image source={require('../img/bPlan1.png')} style={sHead.headerIcon} />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image source={require('../img/bRecetas2.png')} style={sHead.headerIcon} />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image source={require('../img/bRefri1.png')} style={sHead.headerIcon} />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
-=======
-              <Image
-                source={require('../img/bHoy1.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image
-                source={require('../img/bPlan1.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image
-                source={require('../img/bRecetas2.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image
-                source={require('../img/bRefri1.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image
-                source={require('../img/bPerfil.png')}
-                style={sHead.headerIcon2}
-                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-          </View>
-        </View>
-      ),
-    });
-
-    (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, [navigation]);
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
@@ -413,6 +340,7 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
     setIsEditModalVisible(true);
     slideIn();
   };
+
   const onDayPress = (day: any) => {
     setSelectedDate(day.dateString);
     setShowCalendar(false);
@@ -424,50 +352,48 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
       }
     : {};
 
- 
-
-   return (
+  return (
     <View style={styles.container}>
       {serverMessage !== '' && (
-                        <Text style={styles.message}>{serverMessage}</Text>
-                      )}
-         <TextInput
-                  placeholder="Buscar alimento..."
-                  placeholderTextColor="#555"
-                  value={searchTerm}
-                  onChangeText={(text) => setSearchTerm(text)}
-                  style={{
-                    backgroundColor: 'white',
-                    borderColor: '#8CA966',
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    marginBottom: 15,
-                    fontSize: 16,
-                  }}
-                />
-      <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
-  {filteredRecipes.map((recipe, index) => (
-    <View key={index} style={styles.nuevoIngrediente}>
-      <Image source={{ uri: recipe.image }} style={styles.defaultImage} />
-      <View style={styles.textWrapper}>
-        <Text style={styles.txtIngrediente}>{recipe.title}</Text>
-        <Text style={styles.porciones}>Porciones: {recipe.portions}</Text>
-      </View>
-      {recipe.editar && (
-        <View style={styles.textWrappers}>
-          <TouchableOpacity onPress={() => openEditModal(index)}>
-            <Image source={require('../img/Editar.png')} style={styles.trashImage} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => eliminarReceta(recipe.id)}>
-            <Image source={require('../img/Basura.png')} style={styles.trashImage} />
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.message}>{serverMessage}</Text>
       )}
-    </View>
-  ))}
-</ScrollView>
+      <TextInput
+        placeholder="Buscar alimento..."
+        placeholderTextColor="#555"
+        value={searchTerm}
+        onChangeText={(text) => setSearchTerm(text)}
+        style={{
+          backgroundColor: 'white',
+          borderColor: '#8CA966',
+          borderWidth: 1,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          marginBottom: 15,
+          fontSize: 16,
+        }}
+      />
+      <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
+        {filteredRecipes.map((recipe, index) => (
+          <View key={index} style={styles.nuevoIngrediente}>
+            <Image source={{ uri: recipe.image }} style={styles.defaultImage} />
+            <View style={styles.textWrapper}>
+              <Text style={styles.txtIngrediente}>{recipe.title}</Text>
+              <Text style={styles.porciones}>Porciones: {recipe.portions}</Text>
+            </View>
+            {recipe.editar && (
+              <View style={styles.textWrappers}>
+                <TouchableOpacity onPress={() => openEditModal(index)}>
+                  <Image source={require('../img/Editar.png')} style={styles.trashImage} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => eliminarReceta(recipe.id)}>
+                  <Image source={require('../img/Basura.png')} style={styles.trashImage} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ))}
+      </ScrollView>
 
       <Pressable
         onPress={() => {
@@ -489,6 +415,7 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
   );
 };
 
+
 const styles = StyleSheet.create({
   message: {
     color: '#d9534f', // rojo para errores
@@ -508,7 +435,7 @@ const styles = StyleSheet.create({
     borderRadius: SCREEN_WIDTH * 0.05,
     borderWidth: SCREEN_WIDTH * 0.005,
     borderColor: '#8CA966',
-    marginBottom: SCREEN_HEIGHT * 0.09, 
+    marginBottom: SCREEN_HEIGHT * 0.09,
   },
   scrollContent: {
     padding: SCREEN_WIDTH * 0.05,

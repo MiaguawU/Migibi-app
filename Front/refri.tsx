@@ -149,7 +149,7 @@ const Refri = () => {
     const navigateToScreen = (screenName: keyof RootStackParamList) => {
         navigation.navigate(screenName);
     };
-
+    
     // Effect to clear server messages after a timeout
     useEffect(() => {
         if (serverMessage !== '') {
