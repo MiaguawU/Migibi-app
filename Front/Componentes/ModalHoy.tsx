@@ -119,7 +119,7 @@ export const AddModal: React.FC<AddModalProps> = ({
             </View>
             <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
               <Image
-                source={require('./img/Palomita.png')}
+                source={require('../../img/Palomita.png')}
                 style={styles.submitIcon}
                 resizeMode="contain"
                 onError={() => console.error('Error loading Palomita.png')}
@@ -218,7 +218,7 @@ export const EditModal: React.FC<EditModalProps> = ({
             </View>
             <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
               <Image
-                source={require('./img/Palomita.png')}
+                source={require('../../img/Palomita.png')}
                 style={styles.submitIcon}
                 resizeMode="contain"
                 onError={() => console.error('Error loading Palomita.png')}

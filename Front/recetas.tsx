@@ -118,35 +118,35 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
           <View style={sHead.naveAl}>
             <Pressable onPress={() => navigateToScreen('Hoy')}>
               <Image
-                source={require('./img/bHoy1.png')}
+                source={require('../img/bHoy1.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
               <Image
-                source={require('./img/bPlan1.png')}
+                source={require('../img/bPlan1.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
               <Image
-                source={require('./img/bRecetas2.png')}
+                source={require('../img/bRecetas2.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
               <Image
-                source={require('./img/bRefri1.png')}
+                source={require('../img/bRefri1.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
               <Image
-                source={require('./img/bPerfil.png')}
+                source={require('../img/bPerfil.png')}
                 style={sHead.headerIcon2}
                 onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
               />
@@ -310,35 +310,35 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
               <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
 =======
               <Image
-                source={require('./img/bHoy1.png')}
+                source={require('../img/bHoy1.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
               <Image
-                source={require('./img/bPlan1.png')}
+                source={require('../img/bPlan1.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
               <Image
-                source={require('./img/bRecetas2.png')}
+                source={require('../img/bRecetas2.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
               <Image
-                source={require('./img/bRefri1.png')}
+                source={require('../img/bRefri1.png')}
                 style={sHead.headerIcon}
                 onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
               <Image
-                source={require('./img/bPerfil.png')}
+                source={require('../img/bPerfil.png')}
                 style={sHead.headerIcon2}
                 onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
               />
@@ -480,7 +480,7 @@ const navigateToScreen = <T extends keyof RootStackParamList>(
         style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.5 : 1 }]}
       >
         <Image
-          source={require('./img/MasCirculo.png')}
+          source={require('../img/MasCirculo.png')}
           style={styles.addIcon}
           onError={(e) => console.error('Error loading MasCirculo.png:', e.nativeEvent.error)}
         />

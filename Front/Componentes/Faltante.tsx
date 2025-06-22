@@ -97,35 +97,35 @@ export default function Caducar() {
           <View style={sHead.naveAl}>
             <Pressable onPress={() => navigateToScreen('Hoy')}>
               <Image
-                source={require('./img/bHoy1.png')}
+                source={require('../../img/bHoy1.png')}
                 style={sHead.headerIcon}
                 onError={() => console.error('Error loading bHoy1.png')}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
               <Image
-                source={require('./img/bPlan1.png')}
+                source={require('../../img/bPlan1.png')}
                 style={sHead.headerIcon}
                 onError={() => console.error('Error loading bPlan1.png')}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
               <Image
-                source={require('./img/bRecetas1.png')}
+                source={require('../../img/bRecetas1.png')}
                 style={sHead.headerIcon}
                 onError={() => console.error('Error loading bRecetas1.png')}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
               <Image
-                source={require('./img/bRefri1.png')}
+                source={require('../../img/bRefri1.png')}
                 style={sHead.headerIcon}
                 onError={() => console.error('Error loading bRefri1.png')}
               />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
               <Image
-                source={require('./img/bPerfil.png')}
+                source={require('../../img/bPerfil.png')}
                 style={sHead.headerIcon2}
                 onError={() => console.error('Error loading bPerfil.png')}
               />
@@ -145,7 +145,7 @@ export default function Caducar() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
               <Pressable style={bIn.button} onPress={() => handlePress('faltante')}>
                 <Image
-                  source={selectedButtons.faltante ? require('./img/biFal.png') : require('./img/biFal2.png')}
+                  source={selectedButtons.faltante ? require('../../img/biFal.png') : require('../../img/biFal2.png')}
                   style={bIn.imgbi}
                   onError={() => console.error('Error loading biFal.png or biFal2.png')}
                 />
@@ -153,7 +153,7 @@ export default function Caducar() {
               </Pressable>
               <Pressable style={bIn.button} onPress={() => handlePress('caducar')}>
                 <Image
-                  source={selectedButtons.caducar ? require('./img/biCa.png') : require('./img/biCa2.png')}
+                  source={selectedButtons.caducar ? require('../../img/biCa.png') : require('../../img/biCa2.png')}
                   style={bIn.imgbi}
                   onError={() => console.error('Error loading biCa.png or biCa2.png')}
                 />
@@ -161,7 +161,7 @@ export default function Caducar() {
               </Pressable>
               <Pressable style={bIn.button} onPress={() => handlePress('desayuno')}>
                 <Image
-                  source={selectedButtons.desayuno ? require('./img/biDes2.png') : require('./img/biDes.png')}
+                  source={selectedButtons.desayuno ? require('../../img/biDes2.png') : require('../../img/biDes.png')}
                   style={bIn.imgbi}
                   onError={() => console.error('Error loading biDes.png or biDes2.png')}
                 />
@@ -169,7 +169,7 @@ export default function Caducar() {
               </Pressable>
               <Pressable style={bIn.button} onPress={() => handlePress('comida')}>
                 <Image
-                  source={selectedButtons.comida ? require('./img/biCom2.png') : require('./img/biCom.png')}
+                  source={selectedButtons.comida ? require('../../img/biCom2.png') : require('../../img/biCom.png')}
                   style={bIn.imgbi}
                   onError={() => console.error('Error loading biCom.png or biCom2.png')}
                 />
@@ -177,7 +177,7 @@ export default function Caducar() {
               </Pressable>
               <Pressable style={bIn.button} onPress={() => handlePress('cena')}>
                 <Image
-                  source={selectedButtons.cena ? require('./img/biCe2.png') : require('./img/biCe.png')}
+                  source={selectedButtons.cena ? require('../../img/biCe2.png') : require('../../img/biCe.png')}
                   style={bIn.imgbi}
                   onError={() => console.error('Error loading biCe.png or biCe2.png')}
                 />
@@ -208,7 +208,7 @@ export default function Caducar() {
                   <View style={styles.iconContainer}>
                     <Pressable onPress={() => deleteRow(row.id)}>
                       <Image
-                        source={require('./img/Basura.png')}
+                        source={require('../../img/Basura.png')}
                         style={styles.icon}
                         resizeMode="contain"
                         onError={() => console.error('Error loading Basura.png')}
@@ -216,7 +216,7 @@ export default function Caducar() {
                     </Pressable>
                     <Pressable onPress={addRow}>
                       <Image
-                        source={require('./img/Palomita.png')}
+                        source={require('../../img/Palomita.png')}
                         style={styles.icon}
                         resizeMode="contain"
                         onError={() => console.error('Error loading Palomita.png')}

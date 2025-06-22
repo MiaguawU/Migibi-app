@@ -45,11 +45,29 @@ export default function Omg({ navigation, route }: Props) {
           <Text style={styles.buttonText}>Registrarme</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.fatSecretContainer}>
+          <Image
+            source={require('../img/powered_by_fatsecret.svg')} 
+            style={styles.fatSecretImage}
+            resizeMode="contain"
+          />
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  fatSecretContainer: {
+    position: 'absolute', // Esto es clave para posicionarlo libremente
+    bottom: 20,          // Distancia desde la parte inferior
+    left: 20,            // Distancia desde la izquierda
+    padding: 5,          // Pequeño padding si quieres que no esté pegado al borde
+  },
+  fatSecretImage: {
+    width: 100, // Ajusta este tamaño para que sea pequeño
+    height: 20, // Ajusta la altura proporcionalmente
+    // Puedes experimentar con resizeMode si el logo no se ve bien
+  },
   background: {
     flex: 1,
     width: '100%',

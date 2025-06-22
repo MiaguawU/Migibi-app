@@ -26,16 +26,19 @@ class ModalErrorBoundary extends Component<{ children: React.ReactNode }, { hasE
 }
 
 // Props for AddModal
-interface AddModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSubmit: () => void;
-  nombre: string;
-  setNombre: (value: string) => void;
-  cantidad: string;
-  setCantidad: (value: string) => void;
-  caducidad: string;
-  setCaducidad: (value: string) => void;
+export interface AddModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onSubmit: () => void;
+    nombre: string;
+    setNombre: (text: string) => void;
+    cantidad: string;
+    setCantidad: (text: string) => void;
+    caducidad: string;
+    setCaducidad: (text: string) => void;
+    // --- NUEVO ---
+    codigoEscaneado?: string; // Hacemos opcional por si no siempre viene de un escaneo
+    setCodigoEscaneado?: (text: string) => void; // Para permitir edición en el modal
 }
 
 export const AddModal: React.FC<AddModalProps> = ({
@@ -99,7 +102,7 @@ export const AddModal: React.FC<AddModalProps> = ({
             </View>
             <Pressable style={styles.submitButton} onPress={onSubmit}>
               <Image
-                source={require('./img/Palomita.png')}
+                source={require('../../img/Palomita.png')}
                 style={styles.submitIcon}
                 onError={() => console.error('Error loading Palomita.png')}
               />
@@ -185,7 +188,7 @@ export const EditModal: React.FC<EditModalProps> = ({
             </View>
             <Pressable style={styles.submitButton} onPress={onSubmit}>
               <Image
-                source={require('./img/Palomita.png')}
+                source={require('../../img/Palomita.png')}
                 style={styles.submitIcon}
                 onError={() => console.error('Error loading Palomita.png')}
               />

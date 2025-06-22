@@ -129,7 +129,7 @@ const AgReceta = () => {
               />
               <Pressable onPress={() => removeIngredientInput(index)} style={styles.removeButton}>
                 <Image
-                  source={require('./img/Basura.png')}
+                  source={require('../../img/Basura.png')}
                   style={styles.removeIcon}
                   onError={(e) => console.error('Error loading Basura.png:', e.nativeEvent.error)}
                 />
@@ -153,7 +153,7 @@ const AgReceta = () => {
               />
               <Pressable onPress={() => removeProcedureInput(index)} style={styles.removeButton}>
                 <Image
-                  source={require('./img/Basura.png')}
+                  source={require('../../img/Basura.png')}
                   style={styles.removeIcon}
                   onError={(e) => console.error('Error loading Basura.png:', e.nativeEvent.error)}
                 />
@@ -192,7 +192,7 @@ const AgReceta = () => {
         style={({ pressed }) => [styles.submitButton, { opacity: pressed ? 0.5 : 1 }]}
       >
         <Image
-          source={require('./img/Palomita.png')}
+          source={require('../../img/Palomita.png')}
           style={styles.submitIcon}
           onError={(e) => console.error('Error loading Palomita.png:', e.nativeEvent.error)}
         />

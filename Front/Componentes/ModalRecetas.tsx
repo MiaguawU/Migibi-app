@@ -165,7 +165,7 @@ export const AddModal: React.FC<ModalProps> = ({
               <View style={styles.modalHandle} />
               <View style={styles.headerRow}>
                 <Image
-                  source={require('./img/ImgDefecto.png')}
+                  source={require('../../img/ImgDefecto.png')}
                   style={styles.headerImage}
                   onError={() => console.error('Error loading ImgDefecto.png')}
                 />
@@ -180,14 +180,14 @@ export const AddModal: React.FC<ModalProps> = ({
                   <View style={styles.actionIcons}>
                     <TouchableOpacity onPress={onSubmit}>
                       <Image
-                        source={require('./img/Palomita.png')}
+                        source={require('../../img/Palomita.png')}
                         style={styles.actionIcon}
                         onError={() => console.error('Error loading Palomita.png')}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity>
                       <Image
-                        source={require('./img/Sarten.png')}
+                        source={require('../../img/Sarten.png')}
                         style={styles.actionIcon}
                         onError={() => console.error('Error loading Sarten.png')}
                       />
@@ -245,7 +245,7 @@ export const AddModal: React.FC<ModalProps> = ({
                         style={styles.dragHandle}
                       >
                         <Image
-                          source={require('./img/Deslizador.png')}
+                          source={require('../../img/Deslizador.png')}
                           style={styles.dragIcon}
                           onError={() => console.error('Error loading Deslizador.png')}
                         />
@@ -259,7 +259,7 @@ export const AddModal: React.FC<ModalProps> = ({
                       />
                       <TouchableOpacity onPress={() => removeIngredientInput(index)}>
                         <Image
-                          source={require('./img/Basura.png')}
+                          source={require('../../img/Basura.png')}
                           style={styles.trashIcon}
                           onError={() => console.error('Error loading Basura.png')}
                         />
@@ -269,7 +269,7 @@ export const AddModal: React.FC<ModalProps> = ({
                 </ScrollView>
                 <TouchableOpacity style={styles.panelAddButton} onPress={addIngredientInput}>
                   <Image
-                    source={require('./img/MasIcon.png')}
+                    source={require('../../img/MasIcon.png')}
                     style={styles.panelAddIcon}
                     onError={() => console.error('Error loading MasIcon.png')}
                   />
@@ -325,7 +325,7 @@ export const AddModal: React.FC<ModalProps> = ({
                         style={styles.dragHandle}
                       >
                         <Image
-                          source={require('./img/Deslizador.png')}
+                          source={require('../../img/Deslizador.png')}
                           style={styles.dragIcon}
                           onError={() => console.error('Error loading Deslizador.png')}
                         />
@@ -339,7 +339,7 @@ export const AddModal: React.FC<ModalProps> = ({
                       />
                       <TouchableOpacity onPress={() => removeProcedureInput(index)}>
                         <Image
-                          source={require('./img/Basura.png')}
+                          source={require('../../img/Basura.png')}
                           style={styles.trashIcon}
                           onError={() => console.error('Error loading Basura.png')}
                         />
@@ -349,7 +349,7 @@ export const AddModal: React.FC<ModalProps> = ({
                 </ScrollView>
                 <TouchableOpacity style={styles.panelAddButton} onPress={addProcedureInput}>
                   <Image
-                    source={require('./img/MasIcon.png')}
+                    source={require('../../img/MasIcon.png')}
                     style={styles.panelAddIcon}
                     onError={() => console.error('Error loading MasIcon.png')}
                   />
@@ -358,7 +358,7 @@ export const AddModal: React.FC<ModalProps> = ({
 
               <View style={styles.bottomSection}>
                 <Image
-                  source={require('./img/Compartir.png')}
+                  source={require('../../img/Compartir.png')}
                   style={styles.bottomIcon}
                   onError={() => console.error('Error loading Compartir.png')}
                 />
@@ -444,7 +444,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
               <View style={styles.modalHandle} />
               <View style={styles.headerRow}>
                 <Image
-                  source={require('./img/ImgDefecto.png')}
+                  source={require('../../img/ImgDefecto.png')}
                   style={styles.headerImage}
                   onError={() => console.error('Error loading ImgDefecto.png')}
                 />
@@ -459,14 +459,14 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                   <View style={styles.actionIcons}>
                     <TouchableOpacity onPress={onSubmit}>
                       <Image
-                        source={require('./img/Palomita.png')}
+                        source={require('../../img/Palomita.png')}
                         style={styles.actionIcon}
                         onError={() => console.error('Error loading Palomita.png')}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity>
                       <Image
-                        source={require('./img/Sarten.png')}
+                        source={require('../../img/Sarten.png')}
                         style={styles.actionIcon}
                         onError={() => console.error('Error loading Sarten.png')}
                       />
@@ -524,7 +524,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                         style={styles.dragHandle}
                       >
                         <Image
-                          source={require('./img/Deslizador.png')}
+                          source={require('../../img/Deslizador.png')}
                           style={styles.dragIcon}
                           onError={() => console.error('Error loading Deslizador.png')}
                         />
@@ -538,7 +538,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                       />
                       <TouchableOpacity onPress={() => removeIngredientInput(index)}>
                         <Image
-                          source={require('./img/Basura.png')}
+                          source={require('../../img/Basura.png')}
                           style={styles.trashIcon}
                           onError={() => console.error('Error loading Basura.png')}
                         />
@@ -548,7 +548,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                 </ScrollView>
                 <TouchableOpacity style={styles.panelAddButton} onPress={addIngredientInput}>
                   <Image
-                    source={require('./img/MasIcon.png')}
+                    source={require('../../img/MasIcon.png')}
                     style={styles.panelAddIcon}
                     onError={() => console.error('Error loading MasIcon.png')}
                   />
@@ -604,7 +604,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                         style={styles.dragHandle}
                       >
                         <Image
-                          source={require('./img/Deslizador.png')}
+                          source={require('../../img/Deslizador.png')}
                           style={styles.dragIcon}
                           onError={() => console.error('Error loading Deslizador.png')}
                         />
@@ -618,7 +618,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                       />
                       <TouchableOpacity onPress={() => removeProcedureInput(index)}>
                         <Image
-                          source={require('./img/Basura.png')}
+                          source={require('../../img/Basura.png')}
                           style={styles.trashIcon}
                           onError={() => console.error('Error loading Basura.png')}
                         />
@@ -628,7 +628,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
                 </ScrollView>
                 <TouchableOpacity style={styles.panelAddButton} onPress={addProcedureInput}>
                   <Image
-                    source={require('./img/MasIcon.png')}
+                    source={require('../../img/MasIcon.png')}
                     style={styles.panelAddIcon}
                     onError={() => console.error('Error loading MasIcon.png')}
                   />
@@ -637,7 +637,7 @@ export const EditModal: React.FC<ModalProps> = ({visible,onClose,onSubmit,recipe
 
               <View style={styles.bottomSection}>
                 <Image
-                  source={require('./img/Compartir.png')}
+                  source={require('../../img/Compartir.png')}
                   style={styles.bottomIcon}
                   onError={() => console.error('Error loading Compartir.png')}
                 />

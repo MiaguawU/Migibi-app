@@ -58,7 +58,7 @@ export const BasicModal: React.FC<BasicModalProps> = ({ visible, onClose, onOpti
           <View style={styles.basicModalContainer}>
             <Pressable onPress={onClose} style={styles.basicModalBackButton}>
               <Image
-                source={require('./img/fIzq.png')}
+                source={require('../../img/fIzq.png')}
                 style={styles.basicModalBackIcon}
                 resizeMode="contain"
                 onError={() => console.error('Error loading fIzq.png')}
@@ -143,7 +143,7 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             <View style={styles.modalTop}>
               <Pressable onPress={onClose} style={styles.modalBackButton}>
                 <Image
-                  source={require('./img/fIzq.png')}
+                  source={require('../../img/fIzq.png')}
                   style={styles.modalBackIcon}
                   resizeMode="contain"
                   onError={() => console.error('Error loading fIzq.png')}
@@ -166,7 +166,7 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
                   onChangeText={setFecha}
                 />
                 <Image
-                  source={require('./img/CalenIcon.png')}
+                  source={require('../../img/CalenIcon.png')}
                   style={styles.modalIcon}
                   resizeMode="contain"
                   onError={() => console.error('Error loading CalenIcon.png')}
@@ -202,7 +202,7 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             </View>
             <Pressable style={styles.modalButton} onPress={onClose}>
               <Image
-                source={require('./img/Palomita.png')}
+                source={require('../../img/Palomita.png')}
                 style={styles.modalButtonIcon}
                 resizeMode="contain"
                 onError={() => console.error('Error loading Palomita.png')}
