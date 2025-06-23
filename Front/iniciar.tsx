@@ -30,11 +30,6 @@ const redirectUri = AuthSession.makeRedirectUri({
 
 
 
-useEffect(() => {
-    console.log("DEBUG: Generated Redirect URI:", redirectUri);
-    // This log is still crucial to verify what makeRedirectUri actually produces.
-}, [redirectUri]);
-
 type AppConfigExtra = {
   ANDROID_CLIENT_ID: string;
   WEB_CLIENT_ID: string;
@@ -48,6 +43,12 @@ const [request, response, promptAsync] = Google.useAuthRequest({
   scopes: ['profile', 'email'],
   redirectUri,
 });
+
+useEffect(() => {
+    console.log("DEBUG: Generated Redirect URI:", redirectUri);
+    // This log is still crucial to verify what makeRedirectUri actually produces.
+    console.log('android ',extra.ANDROID_CLIENT_ID)
+}, [redirectUri]);
 
   useEffect(() => {
     console.log("🔁 redirectUri:", redirectUri);
