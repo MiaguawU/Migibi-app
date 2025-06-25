@@ -69,19 +69,26 @@ interface FoodRecognitionResponse {
     recognizedFoodsDetailed: RecognizedFoodItem[];
 }
 
-// Interfaces for your modal props (ensure these match your ModalRefri.tsx)
 interface AddModalProps {
     visible: boolean;
     onClose: () => void;
-    onSubmit: () => void;
-    nombre: string;
-    setNombre: (text: string) => void;
-    cantidad: string;
-    setCantidad: (text: string) => void;
-    caducidad: string;
-    setCaducidad: (text: string) => void;
-    codigoEscaneado?: string; // New prop for the barcode
-    setCodigoEscaneado?: (text: string) => void; // New prop for the barcode's setter
+    // CAMBIO CLAVE: onSubmit recibe un objeto con todos los datos
+    onSubmit: (data: {
+        nombre: string;
+        cantidad: string;
+        caducidad: string | null;
+        unidadId: number | null;
+        tipoId: number | null;
+        imagenUri: string | null;
+        codigoEscaneado?: string; // CAMBIO CLAVE: Agregado para el código de barras
+    }) => void;
+    initialNombre?: string; // CAMBIO CLAVE: Para pre-llenar el campo de nombre
+    initialCantidad?: string; // CAMBIO CLAVE: Para pre-llenar el campo de cantidad
+    initialCaducidad?: string; // CAMBIO CLAVE: Para pre-llenar el campo de caducidad
+    initialUnidadId?: number; // CAMBIO CLAVE: Para pre-llenar la unidad
+    initialTipoId?: number; // CAMBIO CLAVE: Para pre-llenar el tipo
+    initialImagenUri?: string; // CAMBIO CLAVE: Para pre-llenar la URI de la imagen
+    initialCodigoEscaneado?: string; // CAMBIO CLAVE: Para pre-llenar el código escaneado
 }
 
 interface EditModalProps {
@@ -141,6 +148,7 @@ const Refri = () => {
     const [scanned, setScanned] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
+    const [processingScan, setProcessingScan] = useState(false); 
 
     // States for food management in the UI
     const [alimentosPerecederos, setAlimentosPerecederos] = useState<CardData[]>([]);
@@ -149,20 +157,19 @@ const Refri = () => {
     const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]); // Used for local management, if applicable
 
     // States for add/edit modal
-    const [isModalVisible, setIsModalVisible] = useState(false); // Visibility of the add modal
+    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false); // Visibility of the edit modal
     const [editIndex, setEditIndex] = useState<number | null>(null); // Index of the food item to edit
     const [nombre, setNombre] = useState(''); // Name field of the modal
     const [cantidad, setCantidad] = useState(''); // Quantity field of the modal
     const [caducidad, setCaducidad] = useState(''); // Expiry date field of the modal
-    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+    const [codigoEscaneadoParaModal, setCodigoEscaneadoParaModal] = useState<string>('');
     const [selectedItemToEdit, setSelectedItemToEdit] = useState<InitialEditData | null>(null);
 
     // States for server communication and UI feedback
     const [serverMessage, setServerMessage] = useState(''); // Success/error messages from the server
     const [isLoading, setIsLoading] = useState(false); // Loading indicator for FatSecret requests
     const [errorMessage, setErrorMessage] = useState<string | null>(null); // Detailed error messages
-    const [codigoEscaneadoParaModal, setCodigoEscaneadoParaModal] = useState<string>('');
 
     // States specific to the image recognition and scanning flow
     const [scannedCode, setScannedCode] = useState<string>(''); // NEW! Stores the scanned barcode
@@ -179,7 +186,7 @@ const Refri = () => {
     const navigateToScreen = (screenName: keyof RootStackParamList) => {
         navigation.navigate(screenName);
     };
-
+    
     // Effect to clear server messages after a timeout
     useEffect(() => {
         if (serverMessage !== '') {
@@ -198,112 +205,179 @@ const Refri = () => {
             }
         })();
     }, []);
-
-    // Effect to handle the food queue and open modals sequentially
-    useEffect(() => {
-        if (foodQueue.length > 0 && !isModalVisible && !isLoading) {
-            const nextFood = foodQueue[0]; // Take the first food item from the queue
-            setCurrentFoodName(nextFood); // Set the current name for the modal
-            setNombre(nextFood); // Pre-fill the name input of the modal
-            setCantidad(''); // Reset other fields (quantity)
-            setCaducidad(''); // Reset other fields (expiry date)
-            // `scannedCode` is managed in `handleBarCodeScanned` or `takePhotoAndRecognize`
-            setIsModalVisible(true); // Open the add modal
+    
+     useEffect(() => {
+        // Open the modal only if there are items in the queue,
+        // the modal is not already visible,
+        // AND there's a current food name set (meaning processing is done and a valid food was found).
+        if (foodQueue.length > 0 && !isAddModalVisible && currentFoodName) {
+            setIsAddModalVisible(true);
         }
-    }, [foodQueue, isModalVisible, isLoading]); // Re-runs when queue, modal visibility, or loading state changes
+    }, [foodQueue, isAddModalVisible, currentFoodName]);
 
-    // Function executed when BarCodeScanner detects a code
-    const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
-        setScanned(true); // Mark as scanned to prevent repeated scans
-        setShowScanner(false); // Close the scanner view
+    const handleCloseAddModal = () => {
+        setIsAddModalVisible(false);
+        setProcessingScan(false); // Reinicia el estado de procesamiento
+        setScanned(false); // Reinicia el estado de escaneo (para permitir escanear de nuevo)
+        setFoodQueue([]); // Limpia la cola de alimentos reconocidos
+        setCurrentFoodName(''); // Limpia el nombre del alimento actual
+        setScannedCode(''); // Limpia cualquier código escaneado almacenado
+        setCodigoEscaneadoParaModal(''); // Asegúrate de limpiar también este estado
+        setErrorMessage(null); // Limpia cualquier mensaje de error
+    };
 
-        setScannedCode(data); // NEW! Stores the scanned barcode in the state
+const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+        if (processingScan) {
+            console.log("Already processing a scan, ignoring new barcode.");
+            return;
+        }
+
+        setScanned(true); // Indicate a scan has occurred
+        setShowScanner(false); // Hide the scanner UI immediately
+        setProcessingScan(true); // Set to true at the very beginning of processing the barcode
+
+        setCodigoEscaneadoParaModal(data);
+        setIsLoading(true);
+        setErrorMessage(null);
 
         try {
-            // Make the request to your server for barcode scanning
             const response = await axios.post(`${PUERTO}/alimento/scanner`, { codigo: data });
 
             if (response.status === 200 && response.data.nombreCompleto) {
                 setServerMessage("Código escaneado correctamente. Datos recibidos del servidor.");
-                // For scanner, usually only one product is expected, so the queue has a single element
-                setFoodQueue([response.data.nombreCompleto]);
+                // Set the current food name and add to queue
+                setCurrentFoodName(response.data.nombreCompleto);
+                setFoodQueue([response.data.nombreCompleto]); // Add the recognized food to the queue
             } else {
-                setServerMessage("El servidor no devolvió resultados para este código.");
-                setFoodQueue(['']); // If not found, open an empty modal for manual entry
+                setProcessingScan(false); // Reset on failure so scanner can be used again
+                setScanned(false);        // Allow re-scanning
+                setServerMessage("No se encontraron resultados para este código de barras.");
+                Alert.alert("Código no reconocido", "No se encontró un alimento para este código de barras. Intenta añadirlo manualmente.");
             }
         } catch (error: any) {
+            setProcessingScan(false); // Reset on error so scanner can be used again
+            setScanned(false);
             console.error("Error al enviar código escaneado:", error.response ? error.response.data : error.message);
             setServerMessage("No se pudo conectar con el servidor al escanear.");
-            setFoodQueue(['']); // Open an empty modal in case of connection error
+            Alert.alert("Error de Conexión", "No se pudo conectar con el servidor para escanear el código. Intenta añadirlo manualmente.");
+        } finally {
+            setIsLoading(false); // End loading regardless of outcome
+            // processingScan is NOT reset here. It is reset when the modal is submitted or closed.
+        }
+    };
+    // ... (inside Refri component)
+
+const takePhotoAndRecognize = async () => {
+        if (!cameraPermission?.granted) {
+            const permissionResult = await requestPermission();
+            if (!permissionResult.granted) {
+                Alert.alert('Permiso Requerido', 'Necesitamos permiso para usar la cámara para tomar fotos.');
+                return;
+            }
+        }
+
+        setShowCamera(false); // --- MODIFIED: Hide the camera immediately after taking picture ---
+        setProcessingScan(true); // --- MODIFIED: Indicate processing has started for the image recognition ---
+
+        if (cameraRef.current) {
+            setIsLoading(true);
+            setErrorMessage(null);
+            setFoodQueue([]); // MODIFIED: Clear previous queue
+            setCurrentFoodName(''); // MODIFIED: Clear current food name
+            setScannedCode(''); // MODIFIED: Clear any scanned code
+
+            try {
+                const photo = await cameraRef.current.takePictureAsync({
+                    base64: true,
+                    quality: 1, // Keep original quality for manipulation
+                    exif: false,
+                });
+
+                if (photo && photo.uri && photo.base64) {
+                    // MODIFIED: Decide on a target format. JPEG is widely supported.
+                    const targetFormat = ImageManipulator.SaveFormat.JPEG;
+                    const fileExtension = 'jpeg'; // or 'png', 'webp'
+
+                    const manipResult = await ImageManipulator.manipulateAsync(
+                        photo.uri,
+                        [{ resize: { width: 800 } }], // Resize for better performance and smaller payload
+                        { compress: 0.8, format: targetFormat, base64: true } // Compress and specify format
+                    );
+
+                    if (manipResult.base64) {
+                        // Prepend the data URI scheme if your backend expects it
+                        const base64Image = `data:image/${fileExtension};base64,${manipResult.base64}`;
+
+                        const response = await axios.post<FoodRecognitionResponse>(
+                            `${PUERTO}/alimento/recognize-food-image`,
+                            { image_b64: base64Image }, // Send with the data URI prefix
+                            {
+                                headers: {
+                                    'Content-Type': 'application/json', // Ensure JSON content type
+                                    // Add any other headers like authorization if needed
+                                },
+                                timeout: 30000, // MODIFIED: Increase timeout for potentially large image uploads (30 seconds)
+                            }
+                        );
+
+                        if (response.data && response.data.recognizedFoodsDetailed && response.data.recognizedFoodsDetailed.length > 0) {
+                            setServerMessage("Alimentos detectados exitosamente.");
+                            const foodNames = response.data.recognizedFoodsDetailed.map(item => item.name);
+                            setFoodQueue(foodNames);
+                            setCurrentFoodName(foodNames[0]);
+                        } else {
+                            setServerMessage("No se detectaron alimentos en la imagen.");
+                            // MODIFIED: Added Alert for no recognition
+                            Alert.alert("No se detectó alimento", "No se reconocieron alimentos en la imagen. Intenta añadirlo manualmente.");
+                            setProcessingScan(false); // MODIFIED: Reset on failure
+                        }
+                    } else {
+                        setProcessingScan(false); // MODIFIED: Reset on failure
+                        setErrorMessage("No se pudo obtener la imagen manipulada en formato Base64.");
+                        // MODIFIED: Added Alert for image processing error
+                        Alert.alert("Error de Imagen", "No se pudo procesar la imagen capturada.");
+                    }
+                } else {
+                    setProcessingScan(false); // MODIFIED: Reset on failure
+                    setErrorMessage("No se pudo obtener la imagen o su Base64 de la cámara.");
+                    // MODIFIED: Added Alert for capture error
+                    Alert.alert("Error de Captura", "No se pudo obtener la imagen de la cámara.");
+                }
+            } catch (error: any) {
+                setProcessingScan(false); // MODIFIED: Reset on error
+                console.error('Error al tomar foto o enviar al servidor:', error); // Log the full error object
+                let msg = 'Error al reconocer la imagen de alimentos.';
+                // MODIFIED: More detailed Axios error handling
+                if (axios.isAxiosError(error)) {
+                    if (error.response) {
+                        console.error('Server response data:', error.response.data);
+                        console.error('Server response status:', error.response.status);
+                        msg = error.response.data.mensaje || error.response.data.error || msg;
+                    } else if (error.request) {
+                        console.error('No response received:', error.request);
+                        msg = 'No se recibió respuesta del servidor. Verifica tu conexión o la URL del servidor.';
+                    } else {
+                        console.error('Error setting up request:', error.message);
+                        msg = 'Error al configurar la solicitud: ' + error.message;
+                    }
+                }
+                setErrorMessage(msg);
+                // MODIFIED: Added Alert for recognition error with suggestion
+                Alert.alert("Error de Reconocimiento", msg + " Intenta añadirlo manualmente.");
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
-    // Function to take a photo with the camera and send it to the server for recognition
-    const takePhotoAndRecognize = async () => {
-    // ... (código de permisos y estados iniciales)
+    const resetAddModalState = () => {
+        setCodigoEscaneadoParaModal(''); // Clear scanned code
+        setCurrentFoodName(''); // Clear the current food name
+        setFoodQueue([]); // Clear the food queue
+        setProcessingScan(false); // Reset processing scan
+        setScanned(false); // Allow re-scanning
+    };
 
-    if (cameraRef.current) {
-        setIsLoading(true);
-        setErrorMessage(null);
-        setFoodQueue([]);
-        setNombre(''); setCantidad(''); setCaducidad('');
-        setScannedCode('');
-
-        try {
-            const photo = await cameraRef.current.takePictureAsync({
-                base64: true,
-                quality: 1, // Toma la foto con la mejor calidad para manipularla después
-                exif: false,
-            });
-
-            setShowCamera(false);
-
-            if (photo && photo.base64) {
-                // --- NUEVA LÓGICA DE MANIPULACIÓN DE IMAGEN ---
-                // Dentro de takePhotoAndRecognize
-const manipResult = await ImageManipulator.manipulateAsync(
-    photo.uri,
-    [{ resize: { width: 800 } }],
-    // Prueba con WEBP si tu servidor lo soporta bien para mayor compresión
-    { compress: 0.7, format: ImageManipulator.SaveFormat.WEBP, base64: true }
-);
-
-                if (manipResult.base64) {
-                    const response = await axios.post<FoodRecognitionResponse>(`${PUERTO}/alimento/recognize-food-image`, {
-                        image_b64: manipResult.base64, // ¡Aquí enviamos el Base64 de la imagen OPTIMIZADA!
-                    });
-
-                    if (response.data && response.data.recognizedFoodsDetailed && response.data.recognizedFoodsDetailed.length > 0) {
-                        setServerMessage("Alimentos detectados exitosamente.");
-                        const foodNames = response.data.recognizedFoodsDetailed.map(item => item.name);
-                        setFoodQueue(foodNames);
-                    } else {
-                        setServerMessage("No se detectaron alimentos en la imagen.");
-                        setFoodQueue(['']);
-                    }
-                } else {
-                    setErrorMessage("No se pudo obtener la imagen manipulada en formato Base64.");
-                    setFoodQueue(['']);
-                }
-                // --- FIN DE LA NUEVA LÓGICA ---
-
-            } else {
-                setErrorMessage("No se pudo obtener la imagen en formato Base64.");
-                setFoodQueue(['']);
-            }
-        } catch (error: any) {
-            console.error('Error al tomar foto o enviar al servidor:', error.response ? error.response.data : error.message);
-            let msg = 'Error al reconocer la imagen de alimentos.';
-            if (axios.isAxiosError(error) && error.response) {
-                msg = error.response.data.mensaje || msg;
-            }
-            setErrorMessage(msg);
-            setFoodQueue(['']);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-};
 
     // Function to delete a food item (assumes it connects to your backend)
     const eliminarAlimento = async (id: number | string) => {
@@ -475,28 +549,12 @@ const manipResult = await ImageManipulator.manipulateAsync(
     }, [navigation]); // Depends on navigation
 
 
-    // Function to add a new ingredient to the list (called from the modal)
-    const addNuevoIngrediente = () => {
-        const newIngrediente: Ingrediente = {
-            id: ingredientes.length, // Temporary ID, adjust if you use backend IDs
-            nombre,
-            cantidad,
-            caducidad,
-            // If you want to save `scannedCode` with the ingredient, add it here
-            // e.g., codigoBarras: scannedCode,
-        };
-        // Add the new ingredient to the local list
-        setIngredientes([...ingredientes, newIngrediente]);
+   
 
-        // Modal queue management: remove the current food and close the modal
-        setFoodQueue(prevQueue => prevQueue.slice(1)); // Remove the first element from the queue
-        setIsModalVisible(false); // Close the current modal
-
-        // Clear `scannedCode` only if this is the last or only entry in the queue
-        if (foodQueue.length <= 1) {
-            setScannedCode(''); // Clear the scanned code after processing the last queue
-        }
-        datosAlimento(); // Reload data to show the new ingredient in the list
+    const onAddModalClose = () => {
+        setIsAddModalVisible(false);
+        // --- MODIFIED: Call the reset function when modal closes ---
+        resetAddModalState();
     };
 
     // Function to remove an ingredient from the local list (not from the backend)
@@ -533,9 +591,8 @@ const manipResult = await ImageManipulator.manipulateAsync(
         setIsEditModalVisible(true);
     };
 
-
-    // Function to open the camera view for taking photos
-    const openCamera = async () => { // Function is now async
+const openCamera = async () => {
+        // Request camera permission if not granted
         if (!cameraPermission?.granted) {
             const permissionResult = await requestPermission();
             if (!permissionResult.granted) {
@@ -544,14 +601,17 @@ const manipResult = await ImageManipulator.manipulateAsync(
             }
         }
         setShowCamera(true);
+        // --- MODIFIED: Clear all scan-related states when opening camera manually ---
         setScanned(false);
-        setNombre(''); setCantidad(''); setCaducidad('');
+        setNombre(''); setCantidad(''); setCaducidad(''); // Clear potential previous modal data
         setFoodQueue([]);
         setScannedCode('');
+        setProcessingScan(false); // Ensure processingScan is false when opening manually
+        setCurrentFoodName(''); // Ensure current food name is clear
     };
 
-    // Function to open the barcode scanner view
-    const openScanner = async () => { // Function is now async
+    const openScanner = async () => {
+        // Request camera permission if not granted
         if (!cameraPermission?.granted) {
             const permissionResult = await requestPermission();
             if (!permissionResult.granted) {
@@ -560,102 +620,98 @@ const manipResult = await ImageManipulator.manipulateAsync(
             }
         }
         setShowScanner(true);
+        // --- MODIFIED: Clear all scan-related states when opening scanner manually ---
         setScanned(false);
-        setNombre(''); setCantidad(''); setCaducidad('');
+        setNombre(''); setCantidad(''); setCaducidad(''); // Clear potential previous modal data
         setFoodQueue([]);
         setScannedCode('');
-    };
-
-    const handleCloseAddModal = () => {
-        setIsAddModalVisible(false);
-        setScanned(false); // Reinicia el estado de escaneo (para permitir escanear de nuevo)
-        setFoodQueue([]); // Limpia la cola de alimentos reconocidos
-        setCurrentFoodName(''); // Limpia el nombre del alimento actual
-        setScannedCode(''); // Limpia cualquier código escaneado almacenado
-        setErrorMessage(null); // Limpia cualquier mensaje de error
+        setProcessingScan(false); // Ensure processingScan is false when opening manually
+        setCurrentFoodName(''); // Ensure current food name is clear
     };
 
     // Camera view component for taking photos
    const renderCameraView = () => {
-    if (cameraPermission === null) {
-        return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
-    }
-    if (!cameraPermission.granted) {
+        if (cameraPermission === null) {
+            return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
+        }
+        if (!cameraPermission.granted) {
+            return (
+                <View style={styles.permissionContainer}>
+                    <Text style={styles.permissionText}>No se tiene acceso a la cámara.</Text>
+                    <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
+                        <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+
         return (
-            <View style={styles.permissionContainer}>
-                <Text style={styles.permissionText}>No se tiene acceso a la cámara.</Text>
-                <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
-                    <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
-                </TouchableOpacity>
+            <View style={styles.fullScreen}>
+                <CameraView
+                    style={styles.cameraFull}
+                    ref={cameraRef}
+                    facing={'back'}
+                >
+                    <View style={styles.cameraControls}>
+                        <TouchableOpacity style={styles.captureButton} onPress={takePhotoAndRecognize}>
+                            <Text style={styles.captureButtonText}>Capturar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => {
+                                setShowCamera(false);
+                                // --- MODIFIED: Reset states when manually closing camera view ---
+                                setProcessingScan(false);
+                                setFoodQueue([]);
+                                setCurrentFoodName('');
+                            }}
+                        >
+                            <Text style={styles.closeText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </CameraView>
             </View>
         );
-    }
+    };
 
-    return (
-    <View style={styles.fullScreen}>
-        <CameraView
-            style={styles.cameraFull}
-            ref={cameraRef}
-            // === FIX FOR 'type' PROP ERROR ===
-            // Use 'facing' prop instead of 'type'
-            // Values are 'back' or 'front' strings.
-            facing={'back'} // Explicitly use 'back' as a string
-        >
-            <View style={styles.cameraControls}>
-                <TouchableOpacity style={styles.captureButton} onPress={takePhotoAndRecognize}>
-                    <Text style={styles.captureButtonText}>Capturar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setShowCamera(false)}
-                >
-                    <Text style={styles.closeText}>Cerrar</Text>
-                </TouchableOpacity>
-            </View>
-        </CameraView>
-    </View>
-);
-};
     // Barcode scanner view component
     const renderScannerView = () => {
         if (cameraPermission === null) {
-        return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
-    }
-    if (!cameraPermission.granted) {
+            return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
+        }
+        if (!cameraPermission.granted) {
             return (
-            <View style={styles.permissionContainer}>
-                <Text style={styles.permissionText}>No se tiene acceso a la cámara para escanear.</Text>
-                <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
-                    <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
-                </TouchableOpacity>
-            </View>
-        );
+                <View style={styles.permissionContainer}>
+                    <Text style={styles.permissionText}>No se tiene acceso a la cámara para escanear.</Text>
+                    <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
+                        <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
+                    </TouchableOpacity>
+                </View>
+            );
         }
 
         return (
             <View style={styles.fullScreen}>
                 <BarCodeScanner
-                    onBarCodeScanned={scanned ? undefined : handleBarCodeScanned} // Only scans if `scanned` is false
+                    // --- MODIFIED: Disable scanner if processingScan is true ---
+                    onBarCodeScanned={processingScan ? undefined : handleBarCodeScanned}
                     style={styles.cameraFull}
                     barCodeTypes={[
                         BarCodeScanner.Constants.BarCodeType.qr,
                         BarCodeScanner.Constants.BarCodeType.ean13,
                         BarCodeScanner.Constants.BarCodeType.ean8,
-                        // Add other barcode types you need to scan
                     ]}
                 />
-                {scanned && ( // Button to re-scan if a code has been detected
-                    <TouchableOpacity style={styles.scanAgainButtonFull} onPress={() => setScanned(false)}>
-                        <Text style={styles.scanAgainText}>Tocar para Escanear de Nuevo</Text>
-                    </TouchableOpacity>
-                )}
-                {/* Button to close scanner view */}
                 <TouchableOpacity
                     style={styles.closeButton}
                     onPress={() => {
                         setShowScanner(false);
-                        setScanned(false); // Reset scanned state when manually closing
-                        setScannedCode(''); // NEW! Clear code when manually closing the scanner
+                        // --- MODIFIED: Reset states when manually closing scanner view ---
+                        setScanned(false);
+                        setScannedCode('');
+                        setProcessingScan(false);
+                        setFoodQueue([]);
+                        setCurrentFoodName('');
                     }}
                 >
                     <Text style={styles.closeText}>Cerrar</Text>
@@ -663,6 +719,7 @@ const manipResult = await ImageManipulator.manipulateAsync(
             </View>
         );
     };
+
 
     // Logic to conditionally render camera or scanner
     if (showCamera) {
@@ -764,35 +821,35 @@ const manipResult = await ImageManipulator.manipulateAsync(
                         setCaducidad('');
                         setFoodQueue([]); // Clear queue if opening manually
                         setScannedCode(''); // Clear scanned code if opening manually
-                        setIsModalVisible(true); // Open add modal
+                        setIsAddModalVisible(true); // Open add modal
                     }}>
                         <Image source={require('../img/MasCirculo.png')} style={styles.addIcon} />
                     </Pressable>
                 </View>
 
-                <AddModal
-                                               visible={isAddModalVisible}
-                                               onClose={handleCloseAddModal}
-                                               onSubmit={datosAlimento} // Tu función onSubmit recibe un objeto 'data'
-                                               initialNombre={currentFoodName} // Pasa el nombre de la cola
-                                               initialCodigoEscaneado={codigoEscaneadoParaModal} // Pasa el código escaneado
-                                               // Ya no pasamos setNombre, setCantidad, setCaducidad, etc.
-                                           />
-                               
-                                           {/* EditModal (usa initialData) */}
-                                           {selectedItemToEdit && (
-                                               <EditModal
-                                                   visible={isEditModalVisible}
-                                                   onClose={() => {
-                                                       setIsEditModalVisible(false);
-                                                       setSelectedItemToEdit(null);
-                                                       datosAlimento();
-                                                   }}
-                                                   onSubmit={editIngrediente}
-                                                   initialData={selectedItemToEdit}
-                                               />
-                                           )}
-            </View>
+               <AddModal
+                               visible={isAddModalVisible}
+                               onClose={handleCloseAddModal}
+                               onSubmit={datosAlimento} // Tu función onSubmit recibe un objeto 'data'
+                               initialNombre={currentFoodName} // Pasa el nombre de la cola
+                               initialCodigoEscaneado={codigoEscaneadoParaModal} // Pasa el código escaneado
+                               // Ya no pasamos setNombre, setCantidad, setCaducidad, etc.
+                           />
+               
+                           {/* EditModal (usa initialData) */}
+                           {selectedItemToEdit && (
+                               <EditModal
+                                   visible={isEditModalVisible}
+                                   onClose={() => {
+                                       setIsEditModalVisible(false);
+                                       setSelectedItemToEdit(null);
+                                       datosAlimento();
+                                   }}
+                                   onSubmit={editIngrediente}
+                                   initialData={selectedItemToEdit}
+                               />
+                           )}
+                           </View>
         </ErrorBoundary>
     );
 };
