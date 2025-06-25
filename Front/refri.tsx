@@ -84,6 +84,33 @@ interface AddModalProps {
     setCodigoEscaneado?: (text: string) => void; // New prop for the barcode's setter
 }
 
+interface EditModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onSubmit: (data: {
+        idAlimento: number;
+        nombre: string;
+        cantidad: string;
+        caducidad: string | null;
+        unidadId: number | null;
+        tipoId: number | null;
+        imagenUri: string | null;
+        codigoEscaneado?: string;
+    }) => void;
+    initialData: {
+        idAlimento: number;
+        nombre: string;
+        cantidad: string;
+        caducidad: string | null;
+        unidadId: number;
+        tipoId: number;
+        imagenUri: string | null;
+        codigoEscaneado?: string;
+    };
+}
+
+type InitialEditData = EditModalProps['initialData'];
+
 // Get screen dimensions
 export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -128,11 +155,14 @@ const Refri = () => {
     const [nombre, setNombre] = useState(''); // Name field of the modal
     const [cantidad, setCantidad] = useState(''); // Quantity field of the modal
     const [caducidad, setCaducidad] = useState(''); // Expiry date field of the modal
+    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+    const [selectedItemToEdit, setSelectedItemToEdit] = useState<InitialEditData | null>(null);
 
     // States for server communication and UI feedback
     const [serverMessage, setServerMessage] = useState(''); // Success/error messages from the server
     const [isLoading, setIsLoading] = useState(false); // Loading indicator for FatSecret requests
     const [errorMessage, setErrorMessage] = useState<string | null>(null); // Detailed error messages
+    const [codigoEscaneadoParaModal, setCodigoEscaneadoParaModal] = useState<string>('');
 
     // States specific to the image recognition and scanning flow
     const [scannedCode, setScannedCode] = useState<string>(''); // NEW! Stores the scanned barcode
@@ -149,7 +179,7 @@ const Refri = () => {
     const navigateToScreen = (screenName: keyof RootStackParamList) => {
         navigation.navigate(screenName);
     };
-    
+
     // Effect to clear server messages after a timeout
     useEffect(() => {
         if (serverMessage !== '') {
@@ -536,6 +566,15 @@ const manipResult = await ImageManipulator.manipulateAsync(
         setScannedCode('');
     };
 
+    const handleCloseAddModal = () => {
+        setIsAddModalVisible(false);
+        setScanned(false); // Reinicia el estado de escaneo (para permitir escanear de nuevo)
+        setFoodQueue([]); // Limpia la cola de alimentos reconocidos
+        setCurrentFoodName(''); // Limpia el nombre del alimento actual
+        setScannedCode(''); // Limpia cualquier código escaneado almacenado
+        setErrorMessage(null); // Limpia cualquier mensaje de error
+    };
+
     // Camera view component for taking photos
    const renderCameraView = () => {
     if (cameraPermission === null) {
@@ -731,46 +770,28 @@ const manipResult = await ImageManipulator.manipulateAsync(
                     </Pressable>
                 </View>
 
-                {/* Add Food Modal */}
-                {/* Ensure your AddModal in `./Componentes/ModalRefri` accepts these props */}
                 <AddModal
-                    visible={isModalVisible}
-                    onClose={() => {
-                        setIsModalVisible(false); // Close the modal
-                        // Advance in the queue for the next food item, if any
-                        setFoodQueue(prevQueue => prevQueue.slice(1));
-                        // Clear scanned code only if no more elements are left in the queue
-                        if (foodQueue.length <= 1) {
-                            setScannedCode(''); // Clear code when the last modal in the queue is closed
-                        }
-                    }}
-                    onSubmit={addNuevoIngrediente}
-                    nombre={nombre}
-                    setNombre={setNombre}
-                    cantidad={cantidad}
-                    setCantidad={setCantidad}
-                    caducidad={caducidad}
-                    setCaducidad={setCaducidad}
-                    codigoEscaneado={scannedCode} // NEW! Pass the scanned code to the modal
-                    setCodigoEscaneado={setScannedCode} // NEW! Pass the setter function for the barcode to the modal
-                />
-
-                {/* Edit Food Modal */}
-                {/* Ensure your EditModal in `./Componentes/ModalRefri` accepts these props */}
-                <EditModal
-                    visible={isEditModalVisible}
-                    onClose={() => setIsEditModalVisible(false)}
-                    onSubmit={editIngrediente}
-                    nombre={nombre}
-                    setNombre={setNombre}
-                    cantidad={cantidad}
-                    setCantidad={setCantidad}
-                    caducidad={caducidad}
-                    setCaducidad={setCaducidad}
-                    // If you want EditModal to also handle the code, pass it here
-                    // codigoEscaneado={scannedCode}
-                    // setCodigoEscaneado={setScannedCode}
-                />
+                                               visible={isAddModalVisible}
+                                               onClose={handleCloseAddModal}
+                                               onSubmit={datosAlimento} // Tu función onSubmit recibe un objeto 'data'
+                                               initialNombre={currentFoodName} // Pasa el nombre de la cola
+                                               initialCodigoEscaneado={codigoEscaneadoParaModal} // Pasa el código escaneado
+                                               // Ya no pasamos setNombre, setCantidad, setCaducidad, etc.
+                                           />
+                               
+                                           {/* EditModal (usa initialData) */}
+                                           {selectedItemToEdit && (
+                                               <EditModal
+                                                   visible={isEditModalVisible}
+                                                   onClose={() => {
+                                                       setIsEditModalVisible(false);
+                                                       setSelectedItemToEdit(null);
+                                                       datosAlimento();
+                                                   }}
+                                                   onSubmit={editIngrediente}
+                                                   initialData={selectedItemToEdit}
+                                               />
+                                           )}
             </View>
         </ErrorBoundary>
     );

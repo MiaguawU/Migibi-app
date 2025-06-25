@@ -1,7 +1,7 @@
-// app.config.js
-import 'dotenv/config';
+const dotenv = require('dotenv');
+dotenv.config();
 
-export default {
+module.exports = {
   expo: {
     name: 'migibi',
     slug: 'migibi',
@@ -32,24 +32,12 @@ export default {
     },
     android: {
       package: 'com.cincode.migibi',
+      versionCode: 6,
       googleServicesFile: './google-services.json',
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      intentFilters: [
-        {
-          action: 'VIEW',
-          data: [
-            {
-              scheme:
-                '597111015357-h6anv1dfdph3obccmhu57mr1evjj4hl5.apps.googleusercontent.com',
-              host: 'oauth',
-            },
-          ],
-          category: ['BROWSABLE', 'DEFAULT'],
-        },
-      ],
       useNextNotificationsApi: true,
     },
     web: {

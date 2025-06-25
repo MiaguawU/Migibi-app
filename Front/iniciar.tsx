@@ -30,6 +30,10 @@ const redirectUri = AuthSession.makeRedirectUri({
 
 
 
+useEffect(() => {
+    console.log("DEBUG: Generated Redirect URI:", redirectUri);
+}, [redirectUri]);
+
 type AppConfigExtra = {
   ANDROID_CLIENT_ID: string;
   WEB_CLIENT_ID: string;
@@ -45,10 +49,18 @@ const [request, response, promptAsync] = Google.useAuthRequest({
 });
 
 useEffect(() => {
-    console.log("DEBUG: Generated Redirect URI:", redirectUri);
-    // This log is still crucial to verify what makeRedirectUri actually produces.
-    console.log('android ',extra.ANDROID_CLIENT_ID)
-}, [redirectUri]);
+    if (extra.ANDROID_CLIENT_ID) {
+        console.log("DEBUG: Android Client ID:", extra.ANDROID_CLIENT_ID);
+    } else {
+        console.warn("WARNING: Android Client ID not found in Constants.expoConfig.extra!");
+    }
+
+    if (extra.WEB_CLIENT_ID) {
+        console.log("DEBUG: Web Client ID:", extra.WEB_CLIENT_ID);
+    } else {
+        console.warn("WARNING: Web Client ID not found in Constants.expoConfig.extra!");
+    }
+}, [extra]);
 
   useEffect(() => {
     console.log("🔁 redirectUri:", redirectUri);
