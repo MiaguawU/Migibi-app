@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,13 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { BarCodeScanner } from 'expo-barcode-scanner';
+import axios from 'axios';
+import PUERTO from '../config'; // Make sure this path is correct
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -24,12 +28,40 @@ type RootStackParamList = {
   Recetas: undefined;
   Refri: undefined;
   Perfil: undefined;
+  AgReceta: {
+    isEdit?: boolean;
+    editIndex?: number;
+    recipeName?: string;
+    ingredientInputs?: string[];
+    procedureInputs?: string[];
+    portions?: string;
+    type?: string;
+    onSubmit: (data: {
+      recipeName: string;
+      ingredientInputs: string[];
+      procedureInputs: string[];
+      portions: string;
+      type: string;
+    }) => void;
+  };
 };
 
-// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+interface CardData {
+  id: number;
+  title: string;
+  portions: string;
+  calories: string;
+  time: string;
+  editar: boolean;
+  image: string;
+  Activo: number;
+  Id_Usuario_Alta: number;
+}
 
-const EjemploCalendarioPersonalizado = () => {
+// Obtener las dimensiones de la pantalla
+export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const Recetas = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [ingredientes, setIngredientes] = useState<number[]>([0]);
@@ -45,16 +77,31 @@ const EjemploCalendarioPersonalizado = () => {
   const [type, setType] = useState('');
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [recipes, setRecipes] = useState<CardData[]>([]);
+  const [serverMessage, setServerMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredRecipes, setFilteredRecipes] = useState<CardData[]>([]);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Drag-and-drop state
+  // Drag-and-drop state (not directly used in the provided JSX, but kept for context)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [draggingType, setDraggingType] = useState<'ingredient' | 'procedure' | null>(null);
   const ingredientPositions = useRef(ingredientInputs.map(() => new Animated.Value(0))).current;
   const procedurePositions = useRef(procedureInputs.map(() => new Animated.Value(0))).current;
   const dragOffset = useRef(new Animated.Value(0)).current;
 
-  const navigateToScreen = (screenName: keyof RootStackParamList) => {
-    navigation.navigate(screenName);
+  const navigateToScreen = <T extends keyof RootStackParamList>(
+    screen: T,
+    params?: RootStackParamList[T] // Keep params as optional
+  ) => {
+    // This is the common pattern for forcing a match with complex overloads.
+    // We first cast to 'unknown' to loosen the type checking,
+    // then to the specific type we know it should be for this call.
+    (navigation.navigate as unknown as (
+      screenName: T,
+      params?: RootStackParamList[T]
+    ) => void)(screen, params);
   };
 
   const slideIn = () => {
@@ -93,19 +140,39 @@ const EjemploCalendarioPersonalizado = () => {
         <View style={sHead.headerButtonsContainer}>
           <View style={sHead.naveAl}>
             <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image source={require('../img/bHoy1.png')} style={sHead.headerIcon} />
+              <Image
+                source={require('../img/bHoy1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
+              />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image source={require('../img/bPlan1.png')} style={sHead.headerIcon} />
+              <Image
+                source={require('../img/bPlan1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
+              />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image source={require('../img/bRecetas2.png')} style={sHead.headerIcon} />
+              <Image
+                source={require('../img/bRecetas2.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
+              />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image source={require('../img/bRefri1.png')} style={sHead.headerIcon} />
+              <Image
+                source={require('../img/bRefri1.png')}
+                style={sHead.headerIcon}
+                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
+              />
             </Pressable>
             <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image source={require('../img/bPerfil.png')} style={sHead.headerIcon2} />
+              <Image
+                source={require('../img/bPerfil.png')}
+                style={sHead.headerIcon2}
+                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
+              />
             </Pressable>
           </View>
         </View>
@@ -116,7 +183,105 @@ const EjemploCalendarioPersonalizado = () => {
       const { status } = await BarCodeScanner.requestPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-  }, [navigation]);
+  }, [navigation]); // Added navigation to dependency array
+
+
+  const datosReceta = async () => {
+    setLoading(true);
+    try {
+      // Obtener el usuario actual desde el localStorage
+      const currentUserString = await AsyncStorage.getItem('currentUser');
+      if (!currentUserString) {
+        setServerMessage('No hay un usuario logueado actualmente.');
+        return;
+      }
+      const currentUser = JSON.parse(currentUserString);
+      const userId = currentUser.id;
+
+      if (isNaN(userId)) {
+        setServerMessage('ID de usuario inválido.');
+        return;
+      }
+
+      // Obtener recetas del servidor
+      const response = await axios.get(`${PUERTO}/recetaGeneral`);
+      if (response.data) {
+        // Filtrar recetas activas y que coincidan con el usuario o sean predeterminadas
+        const recData = response.data
+          .filter(
+            (receta: any) =>
+              receta.Activo > 0 && (receta.Id_Usuario_Alta === userId || receta.Id_Usuario_Alta === 1)
+          )
+          .map((receta: any) => {
+            const isDefault = receta.Id_Usuario_Alta === 1;
+            const puedeEditar = !isDefault || userId === 1;
+
+            return {
+              id: receta.Id_Receta || 0, // Ensure id is a number, default to 0 if null/undefined
+              title: receta.Nombre || '',
+              portions: receta.Porciones || '',
+              calories: String(receta.Calorias || '0'),
+              time: String(receta.Tiempo || '0'),
+              image: receta.Imagen_receta ? `${PUERTO}${receta.Imagen_receta}` : 'defRec.png',
+              Activo: receta.Activo,
+              Id_Usuario_Alta: receta.Id_Usuario_Alta,
+              editar: puedeEditar,
+            };
+          });
+
+        // Actualizar el estado con las recetas filtradas
+        setRecipes(recData);
+        console.log('Recetas obtenidas exitosamente');
+      }
+    } catch (error) {
+      console.error('Error al obtener recetas', error);
+      setServerMessage('No se pudo conectar con el servidor o ID de usuario inválido.');
+    } finally {
+      setLoading(false); // Asegurar que el estado de carga se detenga
+    }
+  };
+
+  const eliminarReceta = async (id: number) => {
+    try {
+      const response = await axios.put(`${PUERTO}/recetaGeneral/${id}`);
+      if (response.status === 200) {
+        setServerMessage(`Receta eliminada exitosamente.`);
+        datosReceta();
+      }
+    } catch (error) {
+      console.error('Error al eliminar receta:', error);
+      setServerMessage('No se pudo eliminar la receta.');
+    }
+  };
+
+  useEffect(() => {
+    datosReceta();
+  }, []); // Empty dependency array means this runs once on mount
+
+  useEffect(() => {
+    const filtered = recipes.filter((recipe) => {
+      const title = recipe.title.toLowerCase();
+      return (
+        (title.includes(searchTerm.toLowerCase()) ||
+          recipe.calories.includes(searchTerm.toLowerCase()) ||
+          recipe.time.includes(searchTerm.toLowerCase())) &&
+        recipe.Activo > 0
+      );
+    });
+    setFilteredRecipes(filtered);
+  }, [searchTerm, recipes]); // Dependencies: searchTerm and recipes
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value.toLowerCase());
+  };
+
+  useEffect(() => {
+    if (serverMessage !== '') {
+      const timer = setTimeout(() => setServerMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [serverMessage]); // Dependency: serverMessage
+
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
@@ -131,25 +296,40 @@ const EjemploCalendarioPersonalizado = () => {
     setIngredientes(ingredientes.filter((_, i) => i !== index));
   };
 
-  const addExpiredProduct = () => {
+  const addExpiredProduct = (data: {
+    recipeName: string;
+    ingredientInputs: string[];
+    procedureInputs: string[];
+    portions: string;
+    type: string;
+  }) => {
     setScanned(false);
     addNuevoIngrediente();
-    setRecipeName('');
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('');
-    setType('');
-    slideOut();
+    console.log('Receta agregada:', data);
   };
 
-  const editIngrediente = () => {
-    setRecipeName('');
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('');
-    setType('');
-    slideOutEdit();
-    setEditIndex(null);
+  const editIngrediente = (data: {
+    recipeName: string;
+    ingredientInputs: string[];
+    procedureInputs: string[];
+    portions: string;
+    type: string;
+  }, index: number) => {
+    console.log(`Receta editada en índice ${index}:`, data);
+  };
+
+  const openEditScreen = (index: number) => {
+    console.log('Navigating to AgReceta for edit, index:', index);
+    navigation.navigate('AgReceta', {
+      isEdit: true,
+      editIndex: index,
+      recipeName: 'Pastel',
+      ingredientInputs: [''],
+      procedureInputs: [''],
+      portions: '10',
+      type: '',
+      onSubmit: (data) => editIngrediente(data, index),
+    });
   };
 
   const openEditModal = (index: number) => {
@@ -253,22 +433,43 @@ const EjemploCalendarioPersonalizado = () => {
 
   return (
     <View style={styles.container}>
+      {serverMessage !== '' && (
+        <Text style={styles.message}>{serverMessage}</Text>
+      )}
+      <TextInput
+        placeholder="Buscar alimento..."
+        placeholderTextColor="#555"
+        value={searchTerm}
+        onChangeText={(text) => setSearchTerm(text)}
+        style={{
+          backgroundColor: 'white',
+          borderColor: '#8CA966',
+          borderWidth: 1,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          marginBottom: 15,
+          fontSize: 16,
+        }}
+      />
       <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
-        {ingredientes.map((_, index) => (
+        {filteredRecipes.map((recipe, index) => (
           <View key={index} style={styles.nuevoIngrediente}>
-            <Image source={require('../img/ImgDefecto.png')} style={styles.defaultImage} />
+            <Image source={{ uri: recipe.image }} style={styles.defaultImage} />
             <View style={styles.textWrapper}>
-              <Text style={styles.txtIngrediente}>Pastel</Text>
-              <Text style={styles.porciones}>Porciones/10</Text>
+              <Text style={styles.txtIngrediente}>{recipe.title}</Text>
+              <Text style={styles.porciones}>Porciones: {recipe.portions}</Text>
             </View>
-            <View style={styles.textWrappers}>
-              <TouchableOpacity onPress={() => openEditModal(index)}>
-                <Image source={require('../img/Editar.png')} style={styles.trashImage} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => removeNuevoIngrediente(index)}>
-                <Image source={require('../img/Basura.png')} style={styles.trashImage} />
-              </TouchableOpacity>
-            </View>
+            {recipe.editar && (
+              <View style={styles.textWrappers}>
+                <TouchableOpacity onPress={() => openEditModal(index)}>
+                  <Image source={require('../img/Editar.png')} style={styles.trashImage} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => eliminarReceta(recipe.id)}>
+                  <Image source={require('../img/Basura.png')} style={styles.trashImage} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         ))}
       </ScrollView>
@@ -299,7 +500,7 @@ const EjemploCalendarioPersonalizado = () => {
                 placeholderTextColor="#888"
               />
               <View style={styles.actionIcons}>
-                <TouchableOpacity onPress={addExpiredProduct}>
+                <TouchableOpacity onPress={() => addExpiredProduct}>
                   <Image source={require('../img/Palomita.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
                 <TouchableOpacity>
@@ -446,7 +647,7 @@ const EjemploCalendarioPersonalizado = () => {
                 placeholderTextColor="#888"
               />
               <View style={styles.actionIcons}>
-                <TouchableOpacity onPress={editIngrediente}>
+                <TouchableOpacity onPress={() => editIngrediente}>
                   <Image source={require('../img/Palomita.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
                 <TouchableOpacity>
@@ -576,11 +777,35 @@ const EjemploCalendarioPersonalizado = () => {
           </Animated.View>
         </TouchableOpacity>
       </Modal>
+      <Pressable
+        onPress={() => {
+          console.log('Pressed MasCirculo');
+          navigation.navigate('AgReceta', {
+            isEdit: false,
+            onSubmit: addExpiredProduct,
+          });
+        }}
+        style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.5 : 1 }]}
+      >
+        <Image
+          source={require('../img/MasCirculo.png')}
+          style={styles.addIcon}
+          onError={(e) => console.error('Error loading MasCirculo.png:', e.nativeEvent.error)}
+        />
+      </Pressable>
     </View>
   );
 };
 
+
 const styles = StyleSheet.create({
+  message: {
+    color: '#d9534f', // rojo para errores
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
   container: {
     flex: 1,
     marginTop: SCREEN_HEIGHT * 0.04,
@@ -592,7 +817,7 @@ const styles = StyleSheet.create({
     borderRadius: SCREEN_WIDTH * 0.05,
     borderWidth: SCREEN_WIDTH * 0.005,
     borderColor: '#8CA966',
-    marginBottom: SCREEN_HEIGHT * 0.09, // Space for add button
+    marginBottom: SCREEN_HEIGHT * 0.09,
   },
   scrollContent: {
     padding: SCREEN_WIDTH * 0.05,
@@ -815,4 +1040,4 @@ const sHead = StyleSheet.create({
   },
 });
 
-export default EjemploCalendarioPersonalizado;
+export default Recetas;
