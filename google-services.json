@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "956104447845",
+    "project_id": "migibi-3dd25",
+    "storage_bucket": "migibi-3dd25.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956104447845:android:d070b441e4160fec60b38c",
+        "android_client_info": {
+          "package_name": "com.cincode.migibi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1gty1nh5kRbdE5JZ8HCOm51w4ZDlNEcU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

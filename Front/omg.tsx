@@ -1,9 +1,10 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useLayoutEffect,useEffect, useState } from 'react';
 import { WhiteSpace } from '@ant-design/react-native';
 import { Text, TouchableOpacity, Button, Image, ImageBackground, StyleSheet, View } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { RouteProp, useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
 
 type OmgScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Omg'>;
 
@@ -11,9 +12,45 @@ type Props = {
   navigation: OmgScreenNavigationProp;
   route: RouteProp<RootStackParamList, 'Omg'>;
 };
-
+type AppConfigExtra = {
+  ANDROID_CLIENT_ID?: string; // Los hacemos opcionales por si no están definidos
+  WEB_CLIENT_ID?: string;
+  eas?: {
+    projectId?: string;
+  };
+  // Puedes añadir más propiedades aquí si las tienes en tu `extra`
+};
 export default function Omg({ navigation, route }: Props) {
   const nav = useNavigation<OmgScreenNavigationProp>();
+  const [androidClientId, setAndroidClientId] = useState<string | undefined>(undefined);
+  const [webClientId, setWebClientId] = useState<string | undefined>(undefined);
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Es buena práctica usar un pequeño retardo o un useEffect con estado
+    // para asegurarse de que Constants.expoConfig esté completamente inicializado,
+    // aunque en una build de EAS esto suele ser instantáneo.
+    const loadConfig = () => {
+      const extra = (Constants.expoConfig?.extra ?? {}) as AppConfigExtra;
+
+      setAndroidClientId(extra.ANDROID_CLIENT_ID);
+      setWebClientId(extra.WEB_CLIENT_ID);
+      setProjectId(extra.eas?.projectId);
+      setLoading(false);
+
+      // También puedes loguear a la consola del debugger (F12 en navegador o Metro Bundler)
+      console.log('DEBUG SCREEN: Constants.expoConfig.extra:', extra);
+      console.log('DEBUG SCREEN: Android Client ID:', extra.ANDROID_CLIENT_ID);
+      console.log('DEBUG SCREEN: Web Client ID:', extra.WEB_CLIENT_ID);
+      console.log('DEBUG SCREEN: EAS Project ID:', extra.eas?.projectId);
+    };
+
+    loadConfig();
+  }, []);
+
+
+  
 
   useLayoutEffect(() => {
     nav.setOptions({
@@ -45,11 +82,29 @@ export default function Omg({ navigation, route }: Props) {
           <Text style={styles.buttonText}>Registrarme</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.fatSecretContainer}>
+          <Image
+            source={require('../img/powered_by_fatsecret.svg')} 
+            style={styles.fatSecretImage}
+            resizeMode="contain"
+          />
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  fatSecretContainer: {
+    position: 'absolute', // Esto es clave para posicionarlo libremente
+    bottom: 20,          // Distancia desde la parte inferior
+    left: 20,            // Distancia desde la izquierda
+    padding: 5,          // Pequeño padding si quieres que no esté pegado al borde
+  },
+  fatSecretImage: {
+    width: 100, // Ajusta este tamaño para que sea pequeño
+    height: 20, // Ajusta la altura proporcionalmente
+    // Puedes experimentar con resizeMode si el logo no se ve bien
+  },
   background: {
     flex: 1,
     width: '100%',

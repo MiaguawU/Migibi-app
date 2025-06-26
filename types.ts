@@ -10,5 +10,12 @@ export type RootStackParamList = {
     Iniciar: undefined;
     refriAgregarStock: undefined;
     refriEditarStock: undefined;
+    ModalRefri: undefined;
+    ModalPlan: undefined;
+    ModalRecetas: undefined;
+    ModalHoy: undefined;
+    Caducar: undefined;
+    Faltante: undefined;
+    AgReceta: undefined;
   };
   

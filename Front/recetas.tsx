@@ -282,7 +282,6 @@ const Recetas = () => {
     }
   }, [serverMessage]); // Dependency: serverMessage
 
-
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     alert(`Product code ${data} has been scanned!`);
@@ -432,6 +431,7 @@ const Recetas = () => {
   };
 
   return (
+    <>
     <View style={styles.container}>
       {serverMessage !== '' && (
         <Text style={styles.message}>{serverMessage}</Text>
@@ -794,6 +794,7 @@ const Recetas = () => {
         />
       </Pressable>
     </View>
+    </>
   );
 };
 
