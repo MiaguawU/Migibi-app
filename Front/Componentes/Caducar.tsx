@@ -1,367 +1,303 @@
-import React, { Component, useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  StyleSheet,
-  Text,
-  Pressable,
-  View,
-  Image,
-  TextInput,
-  ScrollView,
-  Dimensions,
-  Animated,
+    Modal,
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    ScrollView,
+    Alert,
+    Platform,
 } from 'react-native';
-import { Provider } from '@ant-design/react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons'; // Para los checkboxes
 
-// Define el tipo de las pantallas para la navegación
-type RootStackParamList = {
-  Hoy: undefined;
-  Plan: undefined;
-  Recetas: undefined;
-  Refri: undefined;
-  Perfil: undefined;
+// Define la interfaz para un elemento de alimento individual
+interface FoodItem {
+    id: string; // Un ID único para el alimento
+    name: string;
+    daysRemaining: number | null; // null si no aplica o no se sabe
+    isPerishable: boolean; // Indica si tiene fecha de caducidad
+}
+
+// Propiedades que el modal recibirá
+interface ExpiringFoodModalProps {
+    visible: boolean;
+    onClose: () => void;
+}
+
+export const CaducarModal: React.FC<ExpiringFoodModalProps> = ({
+    visible,
+    onClose,
+}) => {
+    // Datos mock para simular alimentos por caducar
+    const [foodItems, setFoodItems] = useState<
+        (FoodItem & { isSelected: boolean })[]
+    >([]);
+
+    const [selectedFoodIds, setSelectedFoodIds] = useState<string[]>([]);
+    const [actionButtonEnabled, setActionButtonEnabled] = useState(false);
+
+    // Cargar datos mock y resetear estados cuando el modal se abre
+    useEffect(() => {
+        if (visible) {
+            // Reiniciar la selección y cargar datos mock
+            setSelectedFoodIds([]);
+            setActionButtonEnabled(false);
+            setFoodItems([
+                { id: '1', name: 'Manzanas', daysRemaining: 2, isPerishable: true, isSelected: false },
+                { id: '2', name: 'Pepinos', daysRemaining: 5, isPerishable: true, isSelected: false },
+                { id: '3', name: 'Arroz', daysRemaining: null, isPerishable: false, isSelected: false }, // No perecedero
+                { id: '4', name: 'Pollo', daysRemaining: 1, isPerishable: true, isSelected: false },
+                { id: '5', name: 'Pasta', daysRemaining: null, isPerishable: false, isSelected: false }, // No perecedero
+                { id: '6', name: 'Leche', daysRemaining: 3, isPerishable: true, isSelected: false },
+                { id: '7', name: 'Pan', daysRemaining: 4, isPerishable: true, isSelected: false },
+            ]);
+        }
+    }, [visible]);
+
+    // Actualizar el estado del botón de acción cuando cambia la selección
+    useEffect(() => {
+        setActionButtonEnabled(selectedFoodIds.length > 0);
+    }, [selectedFoodIds]);
+
+    // Función para manejar la selección/deselección de un alimento
+    const toggleSelectFood = (id: string) => {
+        setFoodItems(prevItems =>
+            prevItems.map(item =>
+                item.id === id ? { ...item, isSelected: !item.isSelected } : item
+            )
+        );
+
+        setSelectedFoodIds(prevSelectedIds =>
+            prevSelectedIds.includes(id)
+                ? prevSelectedIds.filter(selectedId => selectedId !== id)
+                : [...prevSelectedIds, id]
+        );
+    };
+
+    // Función para manejar la acción (ej. "Marcar como consumido")
+    const handleActionButtonPress = () => {
+        if (selectedFoodIds.length === 0) {
+            Alert.alert('Advertencia', 'Por favor, selecciona al menos un alimento.');
+            return;
+        }
+        
+        const selectedNames = foodItems
+            .filter(item => selectedFoodIds.includes(item.id))
+            .map(item => item.name)
+            .join(', ');
+
+        Alert.alert(
+            'Acción',
+            `Has seleccionado para acción: ${selectedNames}. Aquí iría la lógica para eliminar/marcar como consumido.`,
+            [
+                { text: 'OK', onPress: onClose } // Cierra el modal después de la acción
+            ]
+        );
+        // Aquí iría tu lógica para enviar los IDs seleccionados al backend, etc.
+        // Después de la acción, podrías refrescar la lista o cerrar el modal.
+    };
+
+    return (
+        <Modal
+            animationType="fade" // O "slide" o "none"
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+        >
+            <View style={styles.centeredView}>
+                <View style={styles.modalContainer}>
+                    {/* Header: "Por caducar" */}
+                    <View style={styles.headerBubble}>
+                        <Text style={styles.headerText}>Por caducar</Text>
+                    </View>
+
+                    {/* Botón de acción global */}
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            !actionButtonEnabled && styles.actionButtonDisabled,
+                        ]}
+                        onPress={handleActionButtonPress}
+                        disabled={!actionButtonEnabled}
+                    >
+                        <Text style={styles.actionButtonText}>
+                            Marcar seleccionados como consumidos
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Contenedor de la lista de alimentos */}
+                    <View style={styles.foodListContainer}>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {foodItems.map((food, index) => (
+                                <View key={food.id} style={styles.foodItemRow}>
+                                    <Text style={styles.foodItemText}>
+                                        {food.name}
+                                        {food.isPerishable && food.daysRemaining !== null && food.daysRemaining >= 0 && (
+                                            <Text style={styles.daysText}>
+                                                {` / ${food.daysRemaining} día${food.daysRemaining !== 1 ? 's' : ''}`}
+                                            </Text>
+                                        )}
+                                        {food.isPerishable && food.daysRemaining !== null && food.daysRemaining < 0 && (
+                                            <Text style={styles.expiredText}>
+                                                {` / Caducado`}
+                                            </Text>
+                                        )}
+                                    </Text>
+                                    <TouchableOpacity onPress={() => toggleSelectFood(food.id)}>
+                                        <MaterialCommunityIcons
+                                            // ¡CAMBIO AQUÍ! Nombres de íconos cuadrados
+                                            name={food.isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                                            size={28}
+                                            color={food.isSelected ? styles.checkboxChecked.color : styles.checkboxUnchecked.color}
+                                            style={styles.checkbox}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Botón de cerrar el modal */}
+                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                        <Text style={styles.closeButtonText}>Cerrar</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
+    );
 };
 
-// Obtener las dimensiones de la pantalla para hacer el diseño responsivo
-export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-type PlanScreenNavigationProp = NavigationProp<RootStackParamList, 'Plan'>;
-
-// Error Boundary Component
-class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error?: string }> {
-  state = { hasError: false, error: undefined };
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error: error.message };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error: {this.state.error || 'Verifica la consola'}</Text>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-export default function Caducar() {
-  const navigation = useNavigation<PlanScreenNavigationProp>();
-  // Estado para los botones horizontales
-  const [selectedButtons, setSelectedButtons] = useState({
-    faltante: false,
-    caducar: false,
-    desayuno: false,
-    comida: false,
-    cena: false,
-  });
-  // Estado para las filas del panel interno
-  const [rows, setRows] = useState([{ id: 0 }]);
-
-  // Función para manejar el cambio de imagen al presionar un botón
-  const navigateToScreen = (screenName: keyof RootStackParamList) => {
-    navigation.navigate(screenName);
-  };
-
-  // Función para manejar el cambio de imagen al presionar un botón
-  const handlePress = (button: keyof typeof selectedButtons) => {
-    setSelectedButtons((prevState) => ({
-      ...prevState,
-      [button]: !prevState[button],
-    }));
-  };
-
-  // Función para eliminar una fila
-  const deleteRow = (id: number) => {
-    setRows(rows.filter((row) => row.id !== id));
-  };
-
-  // Función para agregar una nueva fila
-  const addRow = () => {
-    const newId = rows.length > 0 ? Math.max(...rows.map((row) => row.id)) + 1 : 0;
-    setRows([...rows, { id: newId }]);
-  };
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerBackTitleVisible: true,
-      headerTintColor: '#40632F',
-      headerTitle: '',
-      headerStyle: {
-        height: SCREEN_HEIGHT * 0.15,
-      },
-      headerRight: () => (
-        <View style={sHead.headerButtonsContainer}>
-          <View style={sHead.naveAl}>
-            <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image
-                source={require('../../img/bHoy1.png')}
-                style={sHead.headerIcon}
-                onError={() => console.error('Error loading bHoy1.png')}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image
-                source={require('../../img/bPlan1.png')}
-                style={sHead.headerIcon}
-                onError={() => console.error('Error loading bPlan1.png')}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image
-                source={require('../../img/bRecetas1.png')}
-                style={sHead.headerIcon}
-                onError={() => console.error('Error loading bRecetas1.png')}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image
-                source={require('../../img/bRefri1.png')}
-                style={sHead.headerIcon}
-                onError={() => console.error('Error loading bRefri1.png')}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image
-                source={require('../../img/bPerfil.png')}
-                style={sHead.headerIcon2}
-                onError={() => console.error('Error loading bPerfil.png')}
-              />
-            </Pressable>
-          </View>
-        </View>
-      ),
-    });
-  }, [navigation]);
-
-  return (
-    <Provider>
-      <ErrorBoundary>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Botones Horizontales */}
-          <View style={bIn.botonesIn}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
-              <Pressable style={bIn.button} onPress={() => handlePress('faltante')}>
-                <Image
-                  source={selectedButtons.faltante ? require('../../img/biFal2.png') : require('../../img/biFal.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biFal.png or biFal2.png')}
-                />
-                <Text style={bIn.textbi}>Faltante</Text>
-              </Pressable>
-              <Pressable style={bIn.button} onPress={() => handlePress('caducar')}>
-                <Image
-                  source={selectedButtons.caducar ? require('../../img/biCa.png') : require('../../img/biCa2.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biCa.png or biCa2.png')}
-                />
-                <Text style={bIn.textbi}>Caducar</Text>
-              </Pressable>
-              <Pressable style={bIn.button} onPress={() => handlePress('desayuno')}>
-                <Image
-                  source={selectedButtons.desayuno ? require('../../img/biDes2.png') : require('../../img/biDes.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biDes.png or biDes2.png')}
-                />
-                <Text style={bIn.textbi}>Desayuno</Text>
-              </Pressable>
-              <Pressable style={bIn.button} onPress={() => handlePress('comida')}>
-                <Image
-                  source={selectedButtons.comida ? require('../../img/biCom2.png') : require('../../img/biCom.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biCom.png or biCom2.png')}
-                />
-                <Text style={bIn.textbi}>Comida</Text>
-              </Pressable>
-              <Pressable style={bIn.button} onPress={() => handlePress('cena')}>
-                <Image
-                  source={selectedButtons.cena ? require('../../img/biCe2.png') : require('../../img/biCe.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biCe.png or biCe2.png')}
-                />
-                <Text style={bIn.textbi}>Cena</Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-
-          {/* Panel Por Caducar */}
-          <View style={styles.panelPorCaducar}>
-            <Text style={styles.panelTitle}>Por caducar</Text>
-            <ScrollView style={styles.innerPanel} showsVerticalScrollIndicator={true}>
-              {rows.map((row) => (
-                <View key={row.id} style={styles.rowContainer}>
-                  <View style={styles.textInputContainer}>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Escribe aquí..."
-                      placeholderTextColor="#888"
-                    />
-                    <Text style={styles.separator}>/</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Escribe aquí..."
-                      placeholderTextColor="#888"
-                    />
-                  </View>
-                  <View style={styles.iconContainer}>
-                    <Pressable onPress={() => deleteRow(row.id)}>
-                      <Image
-                        source={require('../../img/Basura.png')}
-                        style={styles.icon}
-                        resizeMode="contain"
-                        onError={() => console.error('Error loading Basura.png')}
-                      />
-                    </Pressable>
-                    <Pressable onPress={addRow}>
-                      <Image
-                        source={require('../../img/Palomita.png')}
-                        style={styles.icon}
-                        resizeMode="contain"
-                        onError={() => console.error('Error loading Palomita.png')}
-                      />
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </ErrorBoundary>
-    </Provider>
-  );
-}
-
-const sHead = StyleSheet.create({
-  headerButtonsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.15,
-  },
-  headerIcon: {
-    width: SCREEN_WIDTH * 0.15,
-    height: SCREEN_HEIGHT * 0.07,
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-    resizeMode: 'contain',
-  },
-  headerIcon2: {
-    width: SCREEN_WIDTH * 0.16,
-    height: SCREEN_HEIGHT * 0.08,
-    resizeMode: 'contain',
-  },
-  headerIconEs: {
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-  },
-  naveAl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#9FAF7D',
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.07,
-    top: SCREEN_HEIGHT * 0.06,
-    paddingHorizontal: SCREEN_WIDTH * 0.02,
-  },
-});
-
-const bIn = StyleSheet.create({
-  button: {
-    alignItems: 'center',
-    marginHorizontal: SCREEN_WIDTH * 0.02,
-  },
-  imgbi: {
-    width: SCREEN_WIDTH * 0.15,
-    height: SCREEN_WIDTH * 0.15,
-  },
-  textbi: {
-    fontFamily: 'Jomhuria',
-    fontSize: SCREEN_WIDTH * 0.06,
-    color: '#6B8762',
-  },
-  botonesIn: {
-    marginTop: SCREEN_HEIGHT * 0.04,
-    marginBottom: SCREEN_HEIGHT * 0.015,
-    width: '100%',
-  },
-  scrollContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: SCREEN_WIDTH * 0.02,
-  },
-});
-
 const styles = StyleSheet.create({
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingVertical: SCREEN_HEIGHT * 0.02,
-  },
-  panelPorCaducar: {
-    flex: 1,
-    width: '90%',
-    backgroundColor: '#A0CF4B',
-    borderColor: '#8CA966',
-    borderWidth: 2,
-    borderRadius: SCREEN_WIDTH * 0.03,
-    marginTop: SCREEN_HEIGHT * 0.015,
-    marginBottom: SCREEN_HEIGHT * 0.02,
-    padding: SCREEN_WIDTH * 0.04,
-  },
-  panelTitle: {
-    fontSize: SCREEN_WIDTH * 0.06,
-    fontWeight: 'bold',
-    color: '#40632F',
-    textAlign: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.02,
-  },
-  innerPanel: {
-    backgroundColor: '#d5e0d2',
-    borderRadius: SCREEN_WIDTH * 0.03,
-    padding: SCREEN_WIDTH * 0.04,
-    maxHeight: SCREEN_HEIGHT * 0.5, // Limita la altura para activar el scroll
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.02,
-  },
-  textInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  textInput: {
-    flex: 1,
-    height: SCREEN_HEIGHT * 0.05,
-    paddingHorizontal: SCREEN_WIDTH * 0.03,
-    fontSize: SCREEN_WIDTH * 0.04,
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-    color: '#fff',
-  },
-  separator: {
-    fontSize: SCREEN_WIDTH * 0.06,
-    color: '#fff',
-    marginHorizontal: SCREEN_WIDTH * 0.02,
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  icon: {
-    width: SCREEN_WIDTH * 0.05, // Tamaño reducido
-    height: SCREEN_WIDTH * 0.05, // Tamaño reducido
-    marginLeft: SCREEN_WIDTH * 0.02,
-  },
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.4)', // Fondo semitransparente oscuro
+    },
+    modalContainer: {
+        width: '85%',
+        padding: 20,
+        backgroundColor: '#7DBA61', // Verde de fondo principal
+        borderRadius: 20, // Bordes redondeados
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 8,
+    },
+    headerBubble: {
+        backgroundColor: '#D9F7C2', // Verde más claro para el título
+        borderRadius: 15, // Bordes redondeados para la burbuja
+        paddingVertical: 8,
+        paddingHorizontal: 25,
+        position: 'absolute', // Posiciona el título en la parte superior del modal
+        top: -25, // Ajusta para que sobresalga
+        zIndex: 1, // Asegura que esté por encima de otros elementos
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 5,
+    },
+    headerText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#4B7B34', // Color del texto del título
+    },
+    actionButton: {
+        backgroundColor: '#4CAF50', // Verde para el botón de acción
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 10,
+        marginTop: 30, // Espacio desde el título
+        marginBottom: 15,
+        alignSelf: 'stretch', // Ocupa todo el ancho disponible
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    actionButtonDisabled: {
+        backgroundColor: '#A5D6A7', // Un verde más claro cuando está deshabilitado
+    },
+    actionButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    foodListContainer: {
+        width: '100%',
+        maxHeight: 250, // Limita la altura para que sea scrollable
+        backgroundColor: '#E8F5E9', // Fondo muy claro para la lista
+        borderRadius: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        marginBottom: 15,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 2,
+        elevation: 3,
+    },
+    foodItemRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#CFE8D7', // Línea divisoria sutil
+    },
+    foodItemText: {
+        fontSize: 18,
+        color: '#345532', // Color del texto del alimento
+        flex: 1, // Permite que el texto ocupe el espacio restante
+    },
+    daysText: {
+        fontSize: 16,
+        color: '#8BC34A', // Color para los días restantes
+        fontWeight: 'bold',
+    },
+    expiredText: {
+        fontSize: 16,
+        color: '#D32F2F', // Rojo para "Caducado"
+        fontWeight: 'bold',
+    },
+    checkbox: {
+        // Puedes ajustar el tamaño si usas un icono diferente
+    },
+    // Definimos los colores del checkbox aquí para usarlos con MaterialCommunityIcons
+    checkboxChecked: {
+        color: '#4CAF50', // Color cuando está marcado
+    },
+    checkboxUnchecked: {
+        color: '#8BC34A', // Color cuando está desmarcado
+    },
+    closeButton: {
+        backgroundColor: '#FF6F61', // Rojo suave para cerrar
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        marginTop: 10,
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });

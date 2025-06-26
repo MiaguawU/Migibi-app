@@ -20,8 +20,11 @@ import { useCameraPermissions } from 'expo-camera';
 import axios from 'axios';
 import PUERTO from '../config'; // Assumes this file exports the PUERTO constant
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AddModal, EditModal } from './Componentes/ModalRefri'; // ADJUST THIS PATH IF DIFFERENT!
+import { AddModal } from './Componentes/ModalRefri'; // ADJUST THIS PATH IF DIFFERENT!
+import {EditModal} from './Componentes/ModalEditarAlim';
+import { ConsumoModal } from './Componentes/ModalConsumo';
 import * as ImageManipulator from 'expo-image-manipulator';
+import MinusButton from './Componentes/Elementos/BotonConsumir';
 
 // Define the type for the navigation screens
 type RootStackParamList = {
@@ -34,7 +37,7 @@ type RootStackParamList = {
 
 // Define the data structure for food cards
 interface CardData {
-    id: number | string; // Allow string type for ID if it comes from the API as non-numeric
+    id: number ; // Allow string type for ID if it comes from the API as non-numeric
     ingrediente: string;
     cantidad: number;
     abreviatura: string;
@@ -80,43 +83,16 @@ interface AddModalProps {
         unidadId: number | null;
         tipoId: number | null;
         imagenUri: string | null;
-        codigoEscaneado?: string; // CAMBIO CLAVE: Agregado para el código de barras
-    }) => void;
-    initialNombre?: string; // CAMBIO CLAVE: Para pre-llenar el campo de nombre
-    initialCantidad?: string; // CAMBIO CLAVE: Para pre-llenar el campo de cantidad
-    initialCaducidad?: string; // CAMBIO CLAVE: Para pre-llenar el campo de caducidad
-    initialUnidadId?: number; // CAMBIO CLAVE: Para pre-llenar la unidad
-    initialTipoId?: number; // CAMBIO CLAVE: Para pre-llenar el tipo
-    initialImagenUri?: string; // CAMBIO CLAVE: Para pre-llenar la URI de la imagen
-    initialCodigoEscaneado?: string; // CAMBIO CLAVE: Para pre-llenar el código escaneado
-}
-
-interface EditModalProps {
-    visible: boolean;
-    onClose: () => void;
-    onSubmit: (data: {
-        idAlimento: number;
-        nombre: string;
-        cantidad: string;
-        caducidad: string | null;
-        unidadId: number | null;
-        tipoId: number | null;
-        imagenUri: string | null;
         codigoEscaneado?: string;
     }) => void;
-    initialData: {
-        idAlimento: number;
-        nombre: string;
-        cantidad: string;
-        caducidad: string | null;
-        unidadId: number;
-        tipoId: number;
-        imagenUri: string | null;
-        codigoEscaneado?: string;
-    };
+    initialNombre?: string; 
+    initialCantidad?: string;
+    initialCaducidad?: string;
+    initialUnidadId?: number; 
+    initialTipoId?: number; 
+    initialImagenUri?: string; 
+    initialCodigoEscaneado?: string; 
 }
-
-type InitialEditData = EditModalProps['initialData'];
 
 // Get screen dimensions
 export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -154,7 +130,9 @@ const Refri = () => {
     const [alimentosPerecederos, setAlimentosPerecederos] = useState<CardData[]>([]);
     const [alimentosNoPerecederos, setAlimentosNoPerecederos] = useState<CardData[]>([]);
     const [searchTerm, setSearchTerm] = useState(''); // For search functionality
-    const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]); // Used for local management, if applicable
+    const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]); 
+    const [edAlimento, setEdAlimento] = useState<number | null>(null);
+    const [consAlimento, setConsAlimento] = useState<number | null>(null);
 
     // States for add/edit modal
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -164,7 +142,6 @@ const Refri = () => {
     const [cantidad, setCantidad] = useState(''); // Quantity field of the modal
     const [caducidad, setCaducidad] = useState(''); // Expiry date field of the modal
     const [codigoEscaneadoParaModal, setCodigoEscaneadoParaModal] = useState<string>('');
-    const [selectedItemToEdit, setSelectedItemToEdit] = useState<InitialEditData | null>(null);
 
     // States for server communication and UI feedback
     const [serverMessage, setServerMessage] = useState(''); // Success/error messages from the server
@@ -267,108 +244,71 @@ const handleBarCodeScanned = async ({ type, data }: { type: string; data: string
     };
     // ... (inside Refri component)
 
-const takePhotoAndRecognize = async () => {
-        if (!cameraPermission?.granted) {
-            const permissionResult = await requestPermission();
-            if (!permissionResult.granted) {
-                Alert.alert('Permiso Requerido', 'Necesitamos permiso para usar la cámara para tomar fotos.');
-                return;
-            }
-        }
+   const takePhotoAndRecognize = async () => {
+    // ... (código de permisos y estados iniciales)
 
-        setShowCamera(false); // --- MODIFIED: Hide the camera immediately after taking picture ---
-        setProcessingScan(true); // --- MODIFIED: Indicate processing has started for the image recognition ---
+    if (cameraRef.current) {
+        setIsLoading(true);
+        setErrorMessage(null);
+        setFoodQueue([]);
+        setNombre(''); setCantidad(''); setCaducidad('');
+        setScannedCode('');
 
-        if (cameraRef.current) {
-            setIsLoading(true);
-            setErrorMessage(null);
-            setFoodQueue([]); // MODIFIED: Clear previous queue
-            setCurrentFoodName(''); // MODIFIED: Clear current food name
-            setScannedCode(''); // MODIFIED: Clear any scanned code
+        try {
+            const photo = await cameraRef.current.takePictureAsync({
+                base64: true,
+                quality: 1, // Toma la foto con la mejor calidad para manipularla después
+                exif: false,
+            });
 
-            try {
-                const photo = await cameraRef.current.takePictureAsync({
-                    base64: true,
-                    quality: 1, // Keep original quality for manipulation
-                    exif: false,
-                });
+            setShowCamera(false);
 
-                if (photo && photo.uri && photo.base64) {
-                    // MODIFIED: Decide on a target format. JPEG is widely supported.
-                    const targetFormat = ImageManipulator.SaveFormat.JPEG;
-                    const fileExtension = 'jpeg'; // or 'png', 'webp'
+            if (photo && photo.base64) {
+                // --- NUEVA LÓGICA DE MANIPULACIÓN DE IMAGEN ---
+                // Dentro de takePhotoAndRecognize
+const manipResult = await ImageManipulator.manipulateAsync(
+    photo.uri,
+    [{ resize: { width: 800 } }],
+    // Prueba con WEBP si tu servidor lo soporta bien para mayor compresión
+    { compress: 0.7, format: ImageManipulator.SaveFormat.WEBP, base64: true }
+);
 
-                    const manipResult = await ImageManipulator.manipulateAsync(
-                        photo.uri,
-                        [{ resize: { width: 800 } }], // Resize for better performance and smaller payload
-                        { compress: 0.8, format: targetFormat, base64: true } // Compress and specify format
-                    );
+                if (manipResult.base64) {
+                    const response = await axios.post<FoodRecognitionResponse>(`${PUERTO}/alimento/recognize-food-image`, {
+                        image_b64: manipResult.base64, // ¡Aquí enviamos el Base64 de la imagen OPTIMIZADA!
+                    });
 
-                    if (manipResult.base64) {
-                        // Prepend the data URI scheme if your backend expects it
-                        const base64Image = `data:image/${fileExtension};base64,${manipResult.base64}`;
-
-                        const response = await axios.post<FoodRecognitionResponse>(
-                            `${PUERTO}/alimento/recognize-food-image`,
-                            { image_b64: base64Image }, // Send with the data URI prefix
-                            {
-                                headers: {
-                                    'Content-Type': 'application/json', // Ensure JSON content type
-                                    // Add any other headers like authorization if needed
-                                },
-                                timeout: 30000, // MODIFIED: Increase timeout for potentially large image uploads (30 seconds)
-                            }
-                        );
-
-                        if (response.data && response.data.recognizedFoodsDetailed && response.data.recognizedFoodsDetailed.length > 0) {
-                            setServerMessage("Alimentos detectados exitosamente.");
-                            const foodNames = response.data.recognizedFoodsDetailed.map(item => item.name);
-                            setFoodQueue(foodNames);
-                            setCurrentFoodName(foodNames[0]);
-                        } else {
-                            setServerMessage("No se detectaron alimentos en la imagen.");
-                            // MODIFIED: Added Alert for no recognition
-                            Alert.alert("No se detectó alimento", "No se reconocieron alimentos en la imagen. Intenta añadirlo manualmente.");
-                            setProcessingScan(false); // MODIFIED: Reset on failure
-                        }
+                    if (response.data && response.data.recognizedFoodsDetailed && response.data.recognizedFoodsDetailed.length > 0) {
+                        setServerMessage("Alimentos detectados exitosamente.");
+                        const foodNames = response.data.recognizedFoodsDetailed.map(item => item.name);
+                        setFoodQueue(foodNames);
                     } else {
-                        setProcessingScan(false); // MODIFIED: Reset on failure
-                        setErrorMessage("No se pudo obtener la imagen manipulada en formato Base64.");
-                        // MODIFIED: Added Alert for image processing error
-                        Alert.alert("Error de Imagen", "No se pudo procesar la imagen capturada.");
+                        setServerMessage("No se detectaron alimentos en la imagen.");
+                        setFoodQueue(['']);
                     }
                 } else {
-                    setProcessingScan(false); // MODIFIED: Reset on failure
-                    setErrorMessage("No se pudo obtener la imagen o su Base64 de la cámara.");
-                    // MODIFIED: Added Alert for capture error
-                    Alert.alert("Error de Captura", "No se pudo obtener la imagen de la cámara.");
+                    setErrorMessage("No se pudo obtener la imagen manipulada en formato Base64.");
+                    setFoodQueue(['']);
                 }
-            } catch (error: any) {
-                setProcessingScan(false); // MODIFIED: Reset on error
-                console.error('Error al tomar foto o enviar al servidor:', error); // Log the full error object
-                let msg = 'Error al reconocer la imagen de alimentos.';
-                // MODIFIED: More detailed Axios error handling
-                if (axios.isAxiosError(error)) {
-                    if (error.response) {
-                        console.error('Server response data:', error.response.data);
-                        console.error('Server response status:', error.response.status);
-                        msg = error.response.data.mensaje || error.response.data.error || msg;
-                    } else if (error.request) {
-                        console.error('No response received:', error.request);
-                        msg = 'No se recibió respuesta del servidor. Verifica tu conexión o la URL del servidor.';
-                    } else {
-                        console.error('Error setting up request:', error.message);
-                        msg = 'Error al configurar la solicitud: ' + error.message;
-                    }
-                }
-                setErrorMessage(msg);
-                // MODIFIED: Added Alert for recognition error with suggestion
-                Alert.alert("Error de Reconocimiento", msg + " Intenta añadirlo manualmente.");
-            } finally {
-                setIsLoading(false);
+                // --- FIN DE LA NUEVA LÓGICA ---
+
+            } else {
+                setErrorMessage("No se pudo obtener la imagen en formato Base64.");
+                setFoodQueue(['']);
             }
+        } catch (error: any) {
+            console.error('Error al tomar foto o enviar al servidor:', error.response ? error.response.data : error.message);
+            let msg = 'Error al reconocer la imagen de alimentos.';
+            if (axios.isAxiosError(error) && error.response) {
+                msg = error.response.data.mensaje || msg;
+            }
+            setErrorMessage(msg);
+            setFoodQueue(['']);
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }
+};
 
     const resetAddModalState = () => {
         setCodigoEscaneadoParaModal(''); // Clear scanned code
@@ -433,7 +373,7 @@ const takePhotoAndRecognize = async () => {
                     const fecha = fechaCaducidad ? fechaCaducidad.toLocaleDateString() : 'Fecha no disponible';
 
                     return {
-                        id: alimento.id || ' ',
+                        id: alimento.id || 0,
                         ingrediente: alimento.Nombre || ' ',
                         cantidad: alimento.Cantidad || 1,
                         abreviatura: alimento.Unidad || ' ',
@@ -450,7 +390,7 @@ const takePhotoAndRecognize = async () => {
                 const noPerecederos: CardData[] = NoPerecedero.filter(
                     (alimento: any) => alimento.Id_Usuario_Alta === userId
                 ).map((alimento: any) => ({
-                    id: alimento.id || ' ',
+                    id: alimento.id || 0,
                     ingrediente: alimento.Nombre || ' ',
                     cantidad: alimento.Cantidad || 0,
                     abreviatura: alimento.Unidad || ' ',
@@ -548,9 +488,6 @@ const takePhotoAndRecognize = async () => {
         });
     }, [navigation]); // Depends on navigation
 
-
-   
-
     const onAddModalClose = () => {
         setIsAddModalVisible(false);
         // --- MODIFIED: Call the reset function when modal closes ---
@@ -591,8 +528,7 @@ const takePhotoAndRecognize = async () => {
         setIsEditModalVisible(true);
     };
 
-const openCamera = async () => {
-        // Request camera permission if not granted
+    const openCamera = async () => { // Function is now async
         if (!cameraPermission?.granted) {
             const permissionResult = await requestPermission();
             if (!permissionResult.granted) {
@@ -601,13 +537,10 @@ const openCamera = async () => {
             }
         }
         setShowCamera(true);
-        // --- MODIFIED: Clear all scan-related states when opening camera manually ---
         setScanned(false);
-        setNombre(''); setCantidad(''); setCaducidad(''); // Clear potential previous modal data
+        setNombre(''); setCantidad(''); setCaducidad('');
         setFoodQueue([]);
         setScannedCode('');
-        setProcessingScan(false); // Ensure processingScan is false when opening manually
-        setCurrentFoodName(''); // Ensure current food name is clear
     };
 
     const openScanner = async () => {
@@ -631,49 +564,45 @@ const openCamera = async () => {
 
     // Camera view component for taking photos
    const renderCameraView = () => {
-        if (cameraPermission === null) {
-            return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
-        }
-        if (!cameraPermission.granted) {
-            return (
-                <View style={styles.permissionContainer}>
-                    <Text style={styles.permissionText}>No se tiene acceso a la cámara.</Text>
-                    <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
-                        <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
-
+    if (cameraPermission === null) {
+        return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
+    }
+    if (!cameraPermission.granted) {
         return (
-            <View style={styles.fullScreen}>
-                <CameraView
-                    style={styles.cameraFull}
-                    ref={cameraRef}
-                    facing={'back'}
-                >
-                    <View style={styles.cameraControls}>
-                        <TouchableOpacity style={styles.captureButton} onPress={takePhotoAndRecognize}>
-                            <Text style={styles.captureButtonText}>Capturar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.closeButton}
-                            onPress={() => {
-                                setShowCamera(false);
-                                // --- MODIFIED: Reset states when manually closing camera view ---
-                                setProcessingScan(false);
-                                setFoodQueue([]);
-                                setCurrentFoodName('');
-                            }}
-                        >
-                            <Text style={styles.closeText}>Cerrar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </CameraView>
+            <View style={styles.permissionContainer}>
+                <Text style={styles.permissionText}>No se tiene acceso a la cámara.</Text>
+                <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
+                    <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
+                </TouchableOpacity>
             </View>
         );
-    };
+    }
 
+    return (
+    <View style={styles.fullScreen}>
+        <CameraView
+            style={styles.cameraFull}
+            ref={cameraRef}
+            // === FIX FOR 'type' PROP ERROR ===
+            // Use 'facing' prop instead of 'type'
+            // Values are 'back' or 'front' strings.
+            facing={'back'} // Explicitly use 'back' as a string
+        >
+            <View style={styles.cameraControls}>
+                <TouchableOpacity style={styles.captureButton} onPress={takePhotoAndRecognize}>
+                    <Text style={styles.captureButtonText}>Capturar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setShowCamera(false)}
+                >
+                    <Text style={styles.closeText}>Cerrar</Text>
+                </TouchableOpacity>
+            </View>
+        </CameraView>
+    </View>
+);
+};
     // Barcode scanner view component
     const renderScannerView = () => {
         if (cameraPermission === null) {
@@ -790,7 +719,13 @@ const openCamera = async () => {
                                     </Text>
                                 </View>
                                 <View style={styles.textWrappers}>
-                                    <Pressable onPress={() => openEditModal(index)}>
+                                    <MinusButton
+                                            onPress={() => setConsAlimento(alimento.id)}
+                                            size={24} // Puedes ajustar el tamaño aquí
+                                            color="#ffffff" // Color del icono
+                                            style={styles.minusButton} // Estilo adicional para el botón
+                                        />
+                                    <Pressable onPress={() => setEdAlimento(alimento.id)}>
                                         <Image source={require('../img/Editar.png')} style={styles.trashImage} />
                                     </Pressable>
                                     <Pressable onPress={() => eliminarAlimento(alimento.id)}>
@@ -836,25 +771,36 @@ const openCamera = async () => {
                                // Ya no pasamos setNombre, setCantidad, setCaducidad, etc.
                            />
                
-                           {/* EditModal (usa initialData) */}
-                           {selectedItemToEdit && (
-                               <EditModal
-                                   visible={isEditModalVisible}
-                                   onClose={() => {
-                                       setIsEditModalVisible(false);
-                                       setSelectedItemToEdit(null);
-                                       datosAlimento();
-                                   }}
-                                   onSubmit={editIngrediente}
-                                   initialData={selectedItemToEdit}
-                               />
-                           )}
+                <EditModal
+                    visible={edAlimento !== null} // The modal is visible when edAlimento has a value
+                    onClose={() => {
+                        setEdAlimento(null); // <--- CHANGE THIS LINE: Set edAlimento to null to close the modal
+                        // You can remove setIsEditModalVisible(false) here as it's not controlling this modal's visibility
+                        datosAlimento(); // Still call to reload data
+                    }}
+                    onSubmit={datosAlimento}
+                    IdStock={edAlimento}
+                />
+                
+                <ConsumoModal
+                    visible={consAlimento !== null} 
+                    onClose={() => {
+                        setConsAlimento(null); 
+                        datosAlimento(); 
+                    }}
+                    onSubmit={datosAlimento}
+                    IdStock={consAlimento}
+                />
+                           
                            </View>
         </ErrorBoundary>
     );
 };
 
 const styles = StyleSheet.create({
+    minusButton: {
+        marginLeft: 15, // Espacio para separar del texto
+    },
     permissionContainer: {
     flex: 1,
     justifyContent: 'center',
