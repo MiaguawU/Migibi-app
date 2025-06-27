@@ -15,7 +15,7 @@ import { Picker } from '@react-native-picker/picker'; // For Select equivalent
 import * as ImagePicker from 'expo-image-picker'; // Or react-native-image-picker
 import axios from "axios";
 import PUERTO from "../../config"; // Ensure this path is correct for React Native
-import { AutocompleteSelect } from './AutoCompleteSelect'; // ajusta ruta si es necesario
+import { AutocompleteSelect } from './Elementos/AutoCompleteSelect'; // ajusta ruta si es necesario
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- INTERFACES (UNCHANGED, BUT REPEATED FOR CONTEXT) ---
@@ -43,26 +43,8 @@ interface AddModalProps {
 export interface EditModalProps { // Assuming this is also used in Refri.tsx
     visible: boolean;
     onClose: () => void;
-    onSubmit: (data: {
-        idAlimento: number;
-        nombre: string;
-        cantidad: string;
-        caducidad: string | null;
-        unidadId: number | null;
-        tipoId: number | null;
-        imagenUri: string | null;
-        codigoEscaneado?: string;
-    }) => void;
-    initialData: {
-        idAlimento: number;
-        nombre: string;
-        cantidad: string;
-        caducidad: string | null;
-        unidadId: number;
-        tipoId: number;
-        imagenUri: string | null;
-        codigoEscaneado?: string;
-    };
+    onSubmit: () => void;
+    id_alimento: number | null ;
 }
 
 interface Tipo {
@@ -100,6 +82,7 @@ export const AddModal: React.FC<AddModalProps> = ({
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [esNuevo, setEsNuevo] = useState(false);
     const [esPerecedero, setEsPerecedero] = useState<boolean | undefined>(undefined);
+    const [alimentosSugerencia, setAlimentosSugerencia] = useState<any[]>([]);
     const [alimentoSeleccionadoDetalles, setAlimentoSeleccionadoDetalles] = useState<any | null>(null); // To store details of selected existing food
 
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -150,10 +133,10 @@ export const AddModal: React.FC<AddModalProps> = ({
     const fetchAlimentos = async () => {
         try {
             const response = await axios.get(`${PUERTO}/cat_ali/nombres`);
-            setAlimentos(response.data);
+            setAlimentosSugerencia(response.data);
         } catch (error) {
             Alert.alert("Error", "Error al obtener los alimentos.");
-            console.error("Error fetching existing foods:", error);
+            console.error("Error fetching food names:", error);
         }
     };
 
@@ -269,6 +252,32 @@ export const AddModal: React.FC<AddModalProps> = ({
         }
     };
 
+    const handleAutocompleteSelect = (selectedValue: string) => {
+        setNombre(selectedValue);
+        const alimentoFound = alimentosSugerencia.find(
+            (al) => al.Alimento.toLowerCase().trim() === selectedValue.toLowerCase().trim()
+        );
+
+        if (alimentoFound) {
+            setAlimentoSeleccionadoDetalles(alimentoFound);
+            setEsNuevo(false);
+            setEsPerecedero(alimentoFound.Es_Perecedero === 1);
+            // Pre-fill type and unit if available from the selected existing food
+            if (alimentoFound.Id_Tipo_Alimento) setTipoId(alimentoFound.Id_Tipo_Alimento);
+            if (alimentoFound.Id_Unidad_Medida) setUnidadId(alimentoFound.Id_Unidad_Medida);
+            setImagenUri(alimentoFound.ImagenURL || null); // Assuming existing food might have an image
+        } else {
+            // It's a new food item
+            setEsNuevo(true);
+            setTipoId(null); // Clear type for new food until selected
+            setUnidadId(null); // Clear unit for new food until selected
+            setEsPerecedero(undefined); // Reset perecedero state for new food
+            setIsPerecederoQuestionModalVisible(true); // Ask if new food is perishable
+            setAlimentoSeleccionadoDetalles(null);
+            setImagenUri(null); // Clear image for new food
+        }
+    };
+
     const handleNameChange = (text: string) => {
         setNombre(text);
         setSearchTerm(text); // Update search term as user types
@@ -317,40 +326,18 @@ export const AddModal: React.FC<AddModalProps> = ({
         >
             <View style={styles.centeredView}>
                 <View style={styles.modalView}>
-                    <Text style={styles.modalTitle}>Agregar Producto</Text>
+                    <Text style={styles.modalTitle}>Agregar Alimento</Text>
                     <ScrollView style={styles.formScroll}>
-                        {/* Alimento */}
                         <Text style={styles.label}>Alimento:</Text>
+
 <AutocompleteSelect
-  options={alimentos.map((al) => ({
-    label: al.Alimento,
-    value: al.Alimento,
-  }))}
-  onSelect={(value) => {
-    setNombre(value);
-    setSearchTerm(value);
-    setAlimentoSeleccionadoDetalles(null);
-    setEsNuevo(false);
-    setEsPerecedero(undefined);
-    setTipoId(null);
-
-    const alimentoFound = alimentos.find(
-      (al) => al.Alimento.toLowerCase().trim() === value.toLowerCase().trim()
-    );
-
-    if (alimentoFound) {
-      setAlimentoSeleccionadoDetalles(alimentoFound);
-      setEsNuevo(false);
-      setEsPerecedero(alimentoFound.Es_Perecedero === 1);
-      if (alimentoFound.Id_Tipo_Alimento) setTipoId(alimentoFound.Id_Tipo_Alimento);
-      if (alimentoFound.Id_Unidad_Medida) setUnidadId(alimentoFound.Id_Unidad_Medida);
-    } else {
-      setEsNuevo(true);
-      setIsPerecederoQuestionModalVisible(true);
-    }
-  }}
-  defaultValue={initialNombre || ''}
-/>
+                                options={alimentosSugerencia.map((al) => ({
+                                    label: al.Alimento,
+                                    value: al.Alimento,
+                                }))}
+                                onSelect={handleAutocompleteSelect}
+                                defaultValue={nombre} // Pre-fill with current name
+                            />
 
                         {/* Fecha de caducidad (conditional) */}
                         {esPerecedero !== undefined && esPerecedero && (
@@ -465,289 +452,6 @@ export const AddModal: React.FC<AddModalProps> = ({
                     </View>
                 </View>
             </Modal>
-        </Modal>
-    );
-};
-
-// --- EditModal (Mobile React Native Version) ---
-// This is also a new component, mirroring the AddModal structure for editing.
-export const EditModal: React.FC<EditModalProps> = ({
-    visible,
-    onClose,
-    onSubmit,
-    initialData,
-}) => {
-    // --- STATE INITIALIZATION WITH initialData ---
-    const [nombre, setNombre] = useState(initialData.nombre);
-    const [cantidad, setCantidad] = useState(initialData.cantidad);
-    const [caducidad, setCaducidad] = useState<Date | null>(initialData.caducidad ? new Date(initialData.caducidad) : null);
-    const [unidadId, setUnidadId] = useState<number | null>(initialData.unidadId);
-    const [tipoId, setTipoId] = useState<number | null>(initialData.tipoId);
-    const [imagenUri, setImagenUri] = useState<string | null>(initialData.imagenUri);
-    const [codigoEscaneado, setCodigoEscaneado] = useState(initialData.codigoEscaneado || '');
-
-    const [Tipos, setTipos] = useState<Tipo[]>([]);
-    const [Unidades, setUnidad] = useState<Unidad[]>([]);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-
-    // Determine if it's perecedero based on initialData.caducidad presence or type from backend
-    const [esPerecedero, setEsPerecedero] = useState(initialData.caducidad !== null);
-
-    // --- EFFECTS ---
-    useEffect(() => {
-        if (visible) {
-            // Re-initialize state when modal becomes visible or initialData changes
-            setNombre(initialData.nombre);
-            setCantidad(initialData.cantidad);
-            setCaducidad(initialData.caducidad ? new Date(initialData.caducidad) : null);
-            setUnidadId(initialData.unidadId);
-            setTipoId(initialData.tipoId);
-            setImagenUri(initialData.imagenUri);
-            setCodigoEscaneado(initialData.codigoEscaneado || '');
-            setEsPerecedero(initialData.caducidad !== null);
-
-            obtenerTipos();
-            obtenerUnidad();
-        }
-    }, [visible, initialData]);
-
-    // --- DATA FETCHING FUNCTIONS (SHARED WITH ADDMOBAL) ---
-    const obtenerTipos = async () => {
-        try {
-            const response = await axios.get(`${PUERTO}/tipoA`);
-            setTipos(response.data);
-        } catch (error) {
-            Alert.alert("Error", "No se pudieron cargar los tipos.");
-            console.error("Error fetching types for edit:", error);
-        }
-    };
-
-    const obtenerUnidad = async () => {
-        try {
-            const response = await axios.get(`${PUERTO}/unidad`);
-            setUnidad(response.data);
-        } catch (error) {
-            Alert.alert("Error", "No se pudieron cargar las unidades.");
-            console.error("Error fetching units for edit:", error);
-        }
-    };
-
-    // --- IMAGE PICKER (SHARED WITH ADDMOBAL) ---
-    const pickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permiso requerido', 'Necesitamos permiso para acceder a tu galería de fotos.');
-            return;
-        }
-
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            setImagenUri(result.assets[0].uri);
-        }
-    };
-
-    const onDateChange = (event: any, selectedDate: Date | undefined) => {
-        setShowDatePicker(Platform.OS === 'ios'); // Keep picker open on iOS
-        const currentDate = selectedDate || caducidad;
-        setCaducidad(currentDate);
-    };
-
-    // --- FORM SUBMISSION FOR EDIT ---
-    const handleEditSubmit = async () => {
-        if (!nombre || !cantidad || !unidadId || !tipoId || (esPerecedero && !caducidad)) {
-            Alert.alert('Error', 'Por favor, completa todos los campos requeridos.');
-            return;
-        }
-
-        const currentUser = localStorage.getItem("currentUser");
-        if (!currentUser) {
-            Alert.alert("Advertencia", "No hay un usuario logueado actualmente.");
-            return;
-        }
-        const idUsuario = Number(currentUser);
-
-        const formData = new FormData();
-        formData.append('idAlimento', String(initialData.idAlimento)); // IMPORTANT: Send the ID
-        formData.append('nombre', nombre);
-        formData.append('id_unidad', String(unidadId));
-        formData.append('cantidad', cantidad);
-        formData.append('id_tipo', String(tipoId)); // Assuming you send type for existing food on edit too
-        if (esPerecedero && caducidad) {
-            formData.append('fecha_caducidad', caducidad.toISOString().split('T')[0]);
-        } else {
-            formData.append('fecha_caducidad', ''); // Explicitly send empty if not perishable
-        }
-        formData.append('Id_Usuario_Modifica', idUsuario.toString()); // Assuming a "modifying user" ID
-
-        if (imagenUri && imagenUri !== initialData.imagenUri) { // Only send image if changed
-             const uriParts = imagenUri.split('.');
-            const fileType = uriParts[uriParts.length - 1];
-            formData.append('image', {
-                uri: imagenUri,
-                name: `photo.${fileType}`,
-                type: `image/${fileType}`,
-            } as any);
-        }
-        if (codigoEscaneado) {
-            formData.append('codigo_escaneado', codigoEscaneado);
-        }
-
-        try {
-            // Use PUT request for updating
-            const response = await axios.put(`${PUERTO}/alimento/actualizarAlimento`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-            Alert.alert('Éxito', 'Producto actualizado correctamente.');
-            onSubmit({
-                idAlimento: initialData.idAlimento,
-                nombre,
-                cantidad,
-                caducidad: caducidad ? caducidad.toISOString().split('T')[0] : null,
-                unidadId,
-                tipoId,
-                imagenUri,
-                codigoEscaneado,
-            });
-            onClose();
-        } catch (error: any) {
-            console.error("Error updating food:", error);
-            if (error.response && error.response.data && error.response.data.error) {
-                Alert.alert('Error', error.response.data.error);
-            } else {
-                Alert.alert('Error', 'Error de conexión con el servidor o al actualizar el producto.');
-            }
-        }
-    };
-
-    return (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={visible}
-            onRequestClose={onClose}
-        >
-            <View style={styles.centeredView}>
-                <View style={styles.modalView}>
-                    <Text style={styles.modalTitle}>Editar Producto</Text>
-                    <ScrollView style={styles.formScroll}>
-                        {/* Nombre del alimento (can be edited) */}
-                        <Text style={styles.label}>Alimento:</Text>
-                        <TextInput
-                            style={styles.input}
-                            onChangeText={setNombre}
-                            value={nombre}
-                            placeholder="Nombre del alimento"
-                        />
-
-                        {/* Fecha de caducidad (conditional) */}
-                        <Text style={styles.label}>Es perecedero:</Text>
-                        <View style={styles.checkboxContainer}>
-                            <TouchableOpacity
-                                style={styles.checkbox}
-                                onPress={() => setEsPerecedero(!esPerecedero)}
-                            >
-                                {esPerecedero ? <Text style={styles.checkedBox}>✓</Text> : <Text style={styles.uncheckedBox}></Text>}
-                            </TouchableOpacity>
-                            <Text>Sí</Text>
-                        </View>
-
-                        {esPerecedero && (
-                            <>
-                                <Text style={styles.label}>Fecha de caducidad:</Text>
-                                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
-                                    <Text style={styles.datePickerText}>
-                                        {caducidad ? caducidad.toISOString().split('T')[0] : 'Selecciona una fecha'}
-                                    </Text>
-                                </TouchableOpacity>
-                                {showDatePicker && (
-                                    <DateTimePicker
-                                        testID="datePicker"
-                                        value={caducidad || new Date()}
-                                        mode="date"
-                                        display="default"
-                                        onChange={onDateChange}
-                                    />
-                                )}
-                            </>
-                        )}
-
-                        {/* Cantidad */}
-                        <Text style={styles.label}>Cantidad:</Text>
-                        <TextInput
-                            style={styles.input}
-                            onChangeText={setCantidad}
-                            value={cantidad}
-                            keyboardType="numeric"
-                            placeholder="Introduce la cantidad"
-                        />
-
-                        {/* Unidad */}
-                        <Text style={styles.label}>Unidad:</Text>
-                        <View style={styles.pickerContainer}>
-                            <Picker
-                                selectedValue={unidadId}
-                                onValueChange={(itemValue) => setUnidadId(itemValue)}
-                                style={styles.picker}
-                            >
-                                <Picker.Item label="Selecciona una unidad" value={null} />
-                                {Unidades.map((unidad) => (
-                                    <Picker.Item
-                                        key={unidad.Id_Unidad_Medida}
-                                        label={unidad.Unidad_Medida}
-                                        value={unidad.Id_Unidad_Medida}
-                                    />
-                                ))}
-                            </Picker>
-                        </View>
-
-                        {/* Tipo */}
-                        <Text style={styles.label}>Tipo:</Text>
-                        <View style={styles.pickerContainer}>
-                            <Picker
-                                selectedValue={tipoId}
-                                onValueChange={(itemValue) => setTipoId(itemValue)}
-                                style={styles.picker}
-                            >
-                                <Picker.Item label="Selecciona el tipo de alimento" value={null} />
-                                {Tipos.map((tipo) => (
-                                    <Picker.Item
-                                        key={tipo.Id_Tipo_Alimento}
-                                        label={tipo.Tipo_Alimento}
-                                        value={tipo.Id_Tipo_Alimento}
-                                    />
-                                ))}
-                            </Picker>
-                        </View>
-
-                        {/* Imagen */}
-                        <Text style={styles.label}>Imagen:</Text>
-                        <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-                            <Text style={styles.imagePickerButtonText}>Subir Nueva Imagen</Text>
-                        </TouchableOpacity>
-                        {imagenUri && <Text style={styles.imageUriText}>{imagenUri.split('/').pop()}</Text>}
-                        {/* Optionally show current image */}
-                        {initialData.imagenUri && initialData.imagenUri !== "/imagenes/defIng.png" && (
-                             <Text style={styles.imageUriText}>Imagen actual: {initialData.imagenUri.split('/').pop()}</Text>
-                        )}
-                        {/* For simplicity, QR code field is not shown, assuming it's not editable by user */}
-
-                    </ScrollView>
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.saveButton} onPress={handleEditSubmit}>
-                            <Text style={styles.buttonText}>Actualizar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                            <Text style={styles.buttonText}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
         </Modal>
     );
 };

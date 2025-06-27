@@ -39,18 +39,10 @@ export default function Omg({ navigation, route }: Props) {
       setProjectId(extra.eas?.projectId);
       setLoading(false);
 
-      // También puedes loguear a la consola del debugger (F12 en navegador o Metro Bundler)
-      console.log('DEBUG SCREEN: Constants.expoConfig.extra:', extra);
-      console.log('DEBUG SCREEN: Android Client ID:', extra.ANDROID_CLIENT_ID);
-      console.log('DEBUG SCREEN: Web Client ID:', extra.WEB_CLIENT_ID);
-      console.log('DEBUG SCREEN: EAS Project ID:', extra.eas?.projectId);
     };
 
     loadConfig();
   }, []);
-
-
-  
 
   useLayoutEffect(() => {
     nav.setOptions({

@@ -15,6 +15,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { Provider } from '@ant-design/react-native';
 import { AddModal, EditModal } from './Componentes/ModalHoy';
+import {CaducarModal} from './Componentes/Caducar';
 
 // Define el tipo de las pantallas para la navegación
 type RootStackParamList = {
@@ -67,6 +68,7 @@ export default function EjemploCalendarioPersonalizado() {
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isCadVisible, setIsCadVisible] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [comida, setComida] = useState('');
   const [editar, setEditar] = useState('');
@@ -191,7 +193,7 @@ export default function EjemploCalendarioPersonalizado() {
                 />
                 <Text style={bIn.textbi}>Faltante</Text>
               </Pressable>
-              <Pressable style={bIn.button} onPress={() => navigateToScreen('Caducar')}>
+              <Pressable style={bIn.button} onPress={()=>setIsCadVisible(true)}>
                 <Image
                   source={selectedButtons.caducar ? require('../img/biCa2.png') : require('../img/biCa.png')}
                   style={bIn.imgbi}
@@ -312,6 +314,10 @@ export default function EjemploCalendarioPersonalizado() {
             porciones={porciones}
             setPorciones={setPorciones}
           />
+          <CaducarModal
+                visible={isCadVisible}
+                onClose={() => setIsCadVisible(false)}
+            />
         </ScrollView>
       </ErrorBoundary>
     </Provider>
