@@ -20,7 +20,7 @@ import { useCameraPermissions } from 'expo-camera';
 import axios from 'axios';
 import PUERTO from '../config'; // Assumes this file exports the PUERTO constant
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AddModal, EditModal } from './Componentes/ModalRefri'; // ADJUST THIS PATH IF DIFFERENT!
+import { AddModal } from './Componentes/ModalRefri'; // ADJUST THIS PATH IF DIFFERENT!
 import * as ImageManipulator from 'expo-image-manipulator';
 
 // Define the type for the navigation screens
