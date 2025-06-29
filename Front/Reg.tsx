@@ -4,7 +4,9 @@ import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
-import { AntDesign, Feather } from '@expo/vector-icons';
+import { AntDesign, Feather, FontAwesome, Zocial } from '@expo/vector-icons';
+import { useTheme } from './Estilos/ThemeRegistro';
+import { customColors } from './Estilos/colores';
 import axios from 'axios';
 import PUERTO from '../config';
 
@@ -19,7 +21,8 @@ export default function EjemploCalendarioPersonalizado() {
   const [password, setPassword] = useState('');
   const [serverMessage, setServerMessage] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  const theme = useTheme();
+  
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -130,6 +133,7 @@ export default function EjemploCalendarioPersonalizado() {
   
 
   return (
+    <>
     <View style={styles.background}>
       <TouchableOpacity
         style={styles.backButton}
@@ -138,10 +142,10 @@ export default function EjemploCalendarioPersonalizado() {
         <AntDesign name="arrowleft" size={24} color="#40632F" />
       </TouchableOpacity>
 
-      <View style={styles.container}>
+      <View style={styles.container} >
         <Image
           source={require('../img/IconoRegistrarse.png')}
-          style={styles.icon}
+          style={styles.heart}
           resizeMode="contain"
         />
         <Text style={styles.title}>¡Regístrate!</Text>
@@ -149,6 +153,12 @@ export default function EjemploCalendarioPersonalizado() {
 
         {/* Campo de Nombre */}
         <View style={styles.inputContainer}>
+          <FontAwesome
+            name='user'
+            size={20}
+            color="#888"
+            style= {styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Nombre"
@@ -161,6 +171,12 @@ export default function EjemploCalendarioPersonalizado() {
 
         {/* Campo de Correo Electrónico */}
         <View style={styles.inputContainer}>
+          <Zocial
+            name='email'
+            size={18}
+            color="#888"
+            style= {styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Correo Electrónico"
@@ -174,6 +190,12 @@ export default function EjemploCalendarioPersonalizado() {
 
         {/* Campo de Contraseña con ojito */}
         <View style={styles.inputContainer}>
+          <FontAwesome
+            name='lock'
+            size={20}
+            color="#888"
+            style= {styles.inputIcon}
+          />
         <TextInput
             style={styles.input}
             placeholder="Contraseña"
@@ -197,6 +219,12 @@ export default function EjemploCalendarioPersonalizado() {
 
         {/* Campo de Repetir Contraseña con ojito */}
         <View style={styles.inputContainer}>
+          <FontAwesome
+            name='lock'
+            size={20}
+            color="#888"
+            style= {styles.inputIcon}
+          />
         <TextInput
             style={styles.input}
             placeholder="Repetir Contraseña"
@@ -218,27 +246,39 @@ export default function EjemploCalendarioPersonalizado() {
         </View>
         <WhiteSpace size="md" />
 
+        <Button style={styles.googleButton}>
+          <AntDesign name="google" size={22} 
+          color={customColors.colorFuerteFrio} style={styles.googleIcon}/>
+        </Button>
+
         <Button
           style={styles.button}
           onPress={registro}
         >
-          Registrarme
+          <Text style={styles.btnTxt}>Registrarme</Text>
         </Button>
         <WhiteSpace size="md" />
         {serverMessage !== '' && (
                   <Text style={styles.message}>{serverMessage}</Text>
                 )}
-        <Image
-          source={require('../img/IconoGoogle.png')}
-          style={styles.googleIcon}
-          resizeMode="contain"
-        />
       </View>
-    </View>
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  heart : {
+    maxWidth: '80%',
+    maxHeight: '40%',
+  },
+  title : {
+    fontSize: 36,
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'bold',
+    color: customColors.colorFuerteFrio,
+    textAlign: 'center',
+  },
   background: {
     flex: 1,
     width: '100%',
@@ -252,8 +292,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   message: {
-    color: '#d9534f', // rojo para errores
+    color: customColors.colorError, // rojo para errores
     fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'semibold',
     textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 20,
@@ -263,46 +305,62 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  icon: {
-    maxWidth: '80%',
-    maxHeight: '40%',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-  },
   inputContainer: {
-    width: '70%',
-    position: 'relative',
+    justifyContent: 'center',
+    width: '75%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginVertical: 0,
+    backgroundColor: '#fff',
   },
   input: {
     width: '100%',
     height: 50,
     backgroundColor: 'white',
-    borderColor: '#9CFF05',
+    borderColor: '#b8f845',
     borderWidth: 2,
     borderRadius: 20,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    paddingHorizontal: 20,
+    fontSize: 15,
+  },
+  inputIcon: {
+    width: 20,
+    marginRight: 8,
+    color: customColors.colorPrimarioClaro
   },
   eyeIcon: {
     position: 'absolute',
-    right: 15,
+    right: -1,
     top: '50%',
-    transform: [{ translateY: -10 }],
+    transform: [{ translateY: -11 }],
   },
   button: {
-    backgroundColor: '#9CFF05',
-    borderColor: '#6FB800',
+    backgroundColor: customColors.colorPrimario,
+    borderColor: "white",
     borderWidth: 2,
     borderRadius: 20,
     width: '70%',
     height: 50,
   },
-  googleIcon: {
-    width: 75,
-    height: 75,
+  btnTxt : {
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'bold',
+    color: customColors.colorFrio3,
   },
+  googleIcon: {
+    width: 20,
+  },
+  googleButton: {
+    backgroundColor: customColors.colorPrimarioClaro,
+    borderColor: customColors.colorPrimarioClaro,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    padding: 0, // importante
+    overflow: 'visible', // previene cortes
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  }
 });

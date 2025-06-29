@@ -4,7 +4,8 @@ import { Button, WhiteSpace } from '@ant-design/react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
-import { AntDesign, Feather } from '@expo/vector-icons';
+import { AntDesign, Feather, Zocial, FontAwesome } from '@expo/vector-icons';
+import { customColors } from './Estilos/colores';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google'
@@ -131,7 +132,10 @@ useEffect(() => {
 
   return (
     <View style={styles.background}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
         <AntDesign name="arrowleft" size={24} color="#40632F" />
       </TouchableOpacity>
 
@@ -146,6 +150,12 @@ useEffect(() => {
         <WhiteSpace size="lg" />
 
         <View style={styles.inputContainer}>
+          <Zocial
+            name='email'
+            size={18}
+            color="#888"
+            style= {styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Correo Electrónico"
@@ -158,6 +168,12 @@ useEffect(() => {
         <WhiteSpace size="xl" />
 
         <View style={styles.inputContainer}>
+          <FontAwesome
+            name='lock'
+            size={20}
+            color="#888"
+            style= {styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Contraseña"
@@ -176,11 +192,26 @@ useEffect(() => {
               color="#888"
             />
           </TouchableOpacity>
+          
         </View>
+        
+        <TouchableOpacity
+          /*onPress={() => navigation.navigate('Plan')}*/
+        >
+          <Text style={styles.contrasenia}>¿Perdiste tu contraseña?</Text>
+        </TouchableOpacity>
         <WhiteSpace size="xl" />
 
+        {request && (
+        <Button style={styles.googleButton}  onPress={() => promptAsync({ useProxy: true } as any)}>
+          <AntDesign name="google" size={22} 
+          color={customColors.colorFuerteFrio} style={styles.googleIcon}/>
+        </Button>
+        )}
+
+        <WhiteSpace size="xl" />
         <Button style={styles.button} onPress={sesionNormal}>
-          Iniciar Sesión
+          <Text style={styles.btnTxt}>Iniciar Sesión</Text>
         </Button>
         <WhiteSpace size="xl" />
 
@@ -188,33 +219,24 @@ useEffect(() => {
           <Text style={styles.message}>{serverMessage}</Text>
         )}
 
-        {request && (
-          <TouchableOpacity onPress={() => promptAsync({ useProxy: true } as any)}>
-            <Image
-              source={require('../img/IconoGoogle.png')}
-              style={styles.googleIcon}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  title : {
+    fontSize: 36,
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'bold',
+    color: customColors.colorFuerteFrio,
+    textAlign: 'center',
+  },
   background: {
     flex: 1,
     width: '100%',
     height: '100%',
     backgroundColor: '#fff',
-  },
-  message: {
-    color: '#d9534f',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 20,
   },
   backButton: {
     position: 'absolute',
@@ -222,48 +244,85 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 1,
   },
+  message: {
+    color: customColors.colorError, // rojo para errores
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'semibold',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  contrasenia: {
+    color: customColors.colorFuerteCalido, // rojo para errores
+    fontSize: 12,
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'semibold',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-  },
   inputContainer: {
-    width: '70%',
-    position: 'relative',
+    justifyContent: 'center',
+    width: '75%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginVertical: 0,
+    backgroundColor: '#fff',
   },
   input: {
     width: '100%',
     height: 50,
     backgroundColor: 'white',
-    borderColor: '#9CFF05',
+    borderColor: '#b8f845',
     borderWidth: 2,
     borderRadius: 20,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    paddingHorizontal: 20,
+    fontSize: 15,
+  },
+  inputIcon: {
+    width: 20,
+    marginRight: 8,
+    color: customColors.colorPrimarioClaro
   },
   eyeIcon: {
     position: 'absolute',
-    right: 15,
+    right: -1,
     top: '50%',
-    transform: [{ translateY: -10 }],
+    transform: [{ translateY: -11 }],
   },
   button: {
-    backgroundColor: '#9CFF05',
-    borderColor: '#6FB800',
+    backgroundColor: customColors.colorPrimario,
+    borderColor: "white",
     borderWidth: 2,
     borderRadius: 20,
     width: '70%',
     height: 50,
-    justifyContent: 'center',
+  },
+  btnTxt : {
+    fontFamily: 'Poppins-Medium',
+    fontWeight: 'bold',
+    color: customColors.colorFrio3,
   },
   googleIcon: {
-    width: 75,
-    height: 75,
+    width: 20,
   },
+  googleButton: {
+    backgroundColor: customColors.colorPrimarioClaro,
+    borderColor: customColors.colorPrimarioClaro,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    padding: 0, // importante
+    overflow: 'visible', // previene cortes
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  }
 });
