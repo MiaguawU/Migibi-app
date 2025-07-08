@@ -15,5 +15,6 @@ export type RootStackParamList = {
     Caducar: undefined;
     Faltante: undefined;
     AgReceta: undefined;
+    EdReceta: { idReceta?: number };
   };
   

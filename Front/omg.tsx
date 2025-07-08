@@ -12,37 +12,12 @@ type Props = {
   navigation: OmgScreenNavigationProp;
   route: RouteProp<RootStackParamList, 'Omg'>;
 };
-type AppConfigExtra = {
-  ANDROID_CLIENT_ID?: string; // Los hacemos opcionales por si no están definidos
-  WEB_CLIENT_ID?: string;
-  eas?: {
-    projectId?: string;
-  };
-  // Puedes añadir más propiedades aquí si las tienes en tu `extra`
-};
 export default function Omg({ navigation, route }: Props) {
   const nav = useNavigation<OmgScreenNavigationProp>();
   const [androidClientId, setAndroidClientId] = useState<string | undefined>(undefined);
   const [webClientId, setWebClientId] = useState<string | undefined>(undefined);
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Es buena práctica usar un pequeño retardo o un useEffect con estado
-    // para asegurarse de que Constants.expoConfig esté completamente inicializado,
-    // aunque en una build de EAS esto suele ser instantáneo.
-    const loadConfig = () => {
-      const extra = (Constants.expoConfig?.extra ?? {}) as AppConfigExtra;
-
-      setAndroidClientId(extra.ANDROID_CLIENT_ID);
-      setWebClientId(extra.WEB_CLIENT_ID);
-      setProjectId(extra.eas?.projectId);
-      setLoading(false);
-
-    };
-
-    loadConfig();
-  }, []);
 
   useLayoutEffect(() => {
     nav.setOptions({

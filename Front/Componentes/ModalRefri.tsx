@@ -330,7 +330,7 @@ export const AddModal: React.FC<AddModalProps> = ({
                     <ScrollView style={styles.formScroll}>
                         <Text style={styles.label}>Alimento:</Text>
 
-<AutocompleteSelect
+                            <AutocompleteSelect
                                 options={alimentosSugerencia.map((al) => ({
                                     label: al.Alimento,
                                     value: al.Alimento,

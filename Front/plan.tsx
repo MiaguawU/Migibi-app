@@ -174,17 +174,10 @@ export default function Plan() {
     <Provider>
       <ErrorBoundary>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Botones Horizontales */}
+          
           <View style={bIn.botonesIn}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
-              <Pressable style={bIn.button} onPress={() => handlePress('faltante')}>
-                <Image
-                  source={selectedButtons.faltante ? require('../img/biFal2.png') : require('../img/biFal.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biFal.png or biFal2.png')}
-                />
-                <Text style={bIn.textbi}>Faltante</Text>
-              </Pressable>
+              
               <Pressable style={bIn.button} onPress={() => handlePress('caducar')}>
                 <Image
                   source={selectedButtons.caducar ? require('../img/biCa2.png') : require('../img/biCa.png')}

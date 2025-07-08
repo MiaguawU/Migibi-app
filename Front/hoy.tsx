@@ -183,14 +183,7 @@ export default function EjemploCalendarioPersonalizado() {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={bIn.botonesIn}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={bIn.scrollContainer}>
-              <Pressable style={bIn.button} onPress={() => navigateToScreen('Faltante')}>
-                <Image
-                  source={selectedButtons.faltante ? require('../img/biFal2.png') : require('../img/biFal.png')}
-                  style={bIn.imgbi}
-                  onError={() => console.error('Error loading biFal.png or biFal2.png')}
-                />
-                <Text style={bIn.textbi}>Faltante</Text>
-              </Pressable>
+              
               <Pressable style={bIn.button} onPress={()=>setIsCadVisible(true)}>
                 <Image
                   source={selectedButtons.caducar ? require('../img/biCa2.png') : require('../img/biCa.png')}

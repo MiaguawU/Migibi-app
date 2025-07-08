@@ -48,20 +48,6 @@ const [request, response, promptAsync] = Google.useAuthRequest({
   redirectUri,
 });
 
-useEffect(() => {
-    if (extra.ANDROID_CLIENT_ID) {
-        console.log("DEBUG: Android Client ID:", extra.ANDROID_CLIENT_ID);
-    } else {
-        console.warn("WARNING: Android Client ID not found in Constants.expoConfig.extra!");
-    }
-
-    if (extra.WEB_CLIENT_ID) {
-        console.log("DEBUG: Web Client ID:", extra.WEB_CLIENT_ID);
-    } else {
-        console.warn("WARNING: Web Client ID not found in Constants.expoConfig.extra!");
-    }
-}, [extra]);
-
   useEffect(() => {
     console.log("🔁 redirectUri:", redirectUri);
 

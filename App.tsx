@@ -12,6 +12,7 @@ import Iniciar from './Front/iniciar'
 import Hoy from './Front/hoy';
 import Recetas from './Front/recetas';
 import AgReceta from './Front/Receta/AgregarRe';
+import EdReceta from './Front/Receta/EditRe';
 import Refri from './Front/refri';
 import { RootStackParamList } from './types';
 
@@ -44,6 +45,7 @@ export default function App() {
         <Stack.Screen name="ModalPlan" component={Plan} />
         <Stack.Screen name="ModalRecetas" component={Recetas} />
         <Stack.Screen name="AgReceta" component={AgReceta} />
+        <Stack.Screen name="EdReceta" component={EdReceta} />
         <Stack.Screen name="ModalHoy" component={Hoy} />
       </Stack.Navigator>
     </NavigationContainer>

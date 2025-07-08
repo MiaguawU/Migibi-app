@@ -3,9 +3,8 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      ['import', { libraryName: '@ant-design/react-native' }],
-      'react-native-reanimated/plugin',
+      ['import', { libraryName: '@ant-design/react-native' }], // Tu plugin de Ant Design
+      'react-native-reanimated/plugin', // EL PLUGIN DE REANIMATED VA AL FINAL
     ],
   };
 };
-

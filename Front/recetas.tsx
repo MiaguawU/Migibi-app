@@ -1,661 +1,507 @@
-import React, { useState, useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useState, useLayoutEffect, useEffect } from 'react'; // Eliminado useRef ya que no se usa
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Pressable,
-  ScrollView,
-  Dimensions,
-  Modal,
-  TextInput,
-  Animated,
-  PanResponder,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    Image,
+    Pressable,
+    ScrollView,
+    Dimensions,
+    TextInput,
+    Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import type { NavigationProp } from '@react-navigation/native';
-import { Calendar } from 'react-native-calendars';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import { StackNavigationProp } from '@react-navigation/stack'; // Se mantiene para StackNavigationProp
+import { BarCodeScanner } from 'expo-barcode-scanner'; // Se mantiene por si se usa en el futuro, aunque la lógica se quitó
 import axios from 'axios';
-import PUERTO from '../config'; // Make sure this path is correct
+import PUERTO from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons } from '@expo/vector-icons';
+import { RootStackParamList } from '../types'; // Importa RootStackParamList desde tu archivo de tipos
 
-// Define el tipo de las pantallas para la navegación
-type RootStackParamList = {
-  Hoy: undefined;
-  Plan: undefined;
-  Recetas: undefined;
-  Refri: undefined;
-  Perfil: undefined;
-  AgReceta: {
-    isEdit?: boolean;
-    editIndex?: number;
-    recipeName?: string;
-    ingredientInputs?: string[];
-    procedureInputs?: string[];
-    portions?: string;
-    type?: string;
-    onSubmit: (data: {
-      recipeName: string;
-      ingredientInputs: string[];
-      procedureInputs: string[];
-      portions: string;
-      type: string;
-    }) => void;
-  };
-};
+// Define el tipo de navegación para esta pantalla específica
+type RecetasScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Recetas'>;
 
 interface CardData {
-  id: number;
-  title: string;
-  portions: string;
-  calories: string;
-  time: string;
-  editar: boolean;
-  image: string;
-  Activo: number;
-  Id_Usuario_Alta: number;
+    id: number;
+    title: string;
+    portions: string;
+    calories: string;
+    time: string;
+    editar: boolean;
+    image: string;
+    Activo: number;
+    Id_Usuario_Alta: number;
 }
 
 // Obtener las dimensiones de la pantalla
 export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const Recetas = () => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [scanned, setScanned] = useState(false);
-  const [ingredientes, setIngredientes] = useState<number[]>([0]);
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [recipeName, setRecipeName] = useState('');
-  const [ingredientInputs, setIngredientInputs] = useState<string[]>(['']);
-  const [procedureInputs, setProcedureInputs] = useState<string[]>(['']);
-  const [portions, setPortions] = useState('');
-  const [type, setType] = useState('');
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const [recipes, setRecipes] = useState<CardData[]>([]);
-  const [serverMessage, setServerMessage] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredRecipes, setFilteredRecipes] = useState<CardData[]>([]);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null); // Se mantiene por si se usa el escáner
+    const [scanned, setScanned] = useState(false); // Se mantiene por si se usa el escáner
+    const [recipes, setRecipes] = useState<CardData[]>([]);
+    const [serverMessage, setServerMessage] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filteredRecipes, setFilteredRecipes] = useState<CardData[]>([]);
+    const [userId, setUserId] = useState<number | null>(null);
+    const [loading, setLoading] = useState(false);
 
-  // Drag-and-drop state (not directly used in the provided JSX, but kept for context)
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-  const [draggingType, setDraggingType] = useState<'ingredient' | 'procedure' | null>(null);
-  const ingredientPositions = useRef(ingredientInputs.map(() => new Animated.Value(0))).current;
-  const procedurePositions = useRef(procedureInputs.map(() => new Animated.Value(0))).current;
-  const dragOffset = useRef(new Animated.Value(0)).current;
+    // Tipado correcto para useNavigation
+    const navigation = useNavigation<RecetasScreenNavigationProp>();
 
-  const navigateToScreen = <T extends keyof RootStackParamList>(
-    screen: T,
-    params?: RootStackParamList[T] // Keep params as optional
-  ) => {
-    // This is the common pattern for forcing a match with complex overloads.
-    // We first cast to 'unknown' to loosen the type checking,
-    // then to the specific type we know it should be for this call.
-    (navigation.navigate as unknown as (
-      screenName: T,
-      params?: RootStackParamList[T]
-    ) => void)(screen, params);
-  };
+    // Función genérica para navegar a pantallas, ahora correctamente tipada
+    const navigateToScreen = <T extends keyof RootStackParamList>(
+        screen: T,
+        params?: RootStackParamList[T]
+    ) => {
+        // La aserción 'as any' o 'as StackNavigationProp<RootStackParamList>'
+        // permite que TypeScript no se queje por la sobrecarga compleja.
+        // Es un "escape" controlado para situaciones como esta.
+        (navigation.navigate as any)(screen, params);
+    };
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerBackTitleVisible: false,
-      headerTintColor: '#40632F',
-      headerTitle: '',
-      headerStyle: {
-        height: SCREEN_HEIGHT * 0.15,
-      },
-      headerRight: () => (
-        <View style={sHead.headerButtonsContainer}>
-          <View style={sHead.naveAl}>
-            <Pressable onPress={() => navigateToScreen('Hoy')}>
-              <Image
-                source={require('../img/bHoy1.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Plan')}>
-              <Image
-                source={require('../img/bPlan1.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Recetas')}>
-              <Image
-                source={require('../img/bRecetas2.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Refri')}>
-              <Image
-                source={require('../img/bRefri1.png')}
-                style={sHead.headerIcon}
-                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-            <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
-              <Image
-                source={require('../img/bPerfil.png')}
-                style={sHead.headerIcon2}
-                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
-              />
-            </Pressable>
-          </View>
-        </View>
-      ),
-    });
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerBackTitleVisible: false,
+            headerTintColor: '#40632F',
+            headerTitle: '',
+            headerStyle: {
+                height: SCREEN_HEIGHT * 0.15,
+            },
+            headerLeft: () => null, // Remove the back arrow
+            headerRight: () => (
+                <View style={sHead.headerButtonsContainer}>
+                    <View style={sHead.naveAl}>
+                        <Pressable onPress={() => navigateToScreen('Hoy')}>
+                            <Image
+                                source={require('../img/bHoy1.png')}
+                                style={sHead.headerIcon}
+                                onError={(e) => console.error('Error loading bHoy1.png:', e.nativeEvent.error)}
+                            />
+                        </Pressable>
+                        <Pressable onPress={() => navigateToScreen('Plan')}>
+                            <Image
+                                source={require('../img/bPlan1.png')}
+                                style={sHead.headerIcon}
+                                onError={(e) => console.error('Error loading bPlan1.png:', e.nativeEvent.error)}
+                            />
+                        </Pressable>
+                        <Pressable onPress={() => navigateToScreen('Recetas')}>
+                            <Image
+                                source={require('../img/bRecetas2.png')}
+                                style={sHead.headerIcon}
+                                onError={(e) => console.error('Error loading bRecetas2.png:', e.nativeEvent.error)}
+                            />
+                        </Pressable>
+                        <Pressable onPress={() => navigateToScreen('Refri')}>
+                            <Image
+                                source={require('../img/bRefri1.png')}
+                                style={sHead.headerIcon}
+                                onError={(e) => console.error('Error loading bRefri1.png:', e.nativeEvent.error)}
+                            />
+                        </Pressable>
+                        <Pressable onPress={() => navigateToScreen('Perfil')} style={sHead.headerIconEs}>
+                            <Image
+                                source={require('../img/bPerfil.png')}
+                                style={sHead.headerIcon2}
+                                onError={(e) => console.error('Error loading bPerfil.png:', e.nativeEvent.error)}
+                            />
+                        </Pressable>
+                    </View>
+                </View>
+            ),
+        });
+    }, [navigation]);
 
-    (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, [navigation]); // Added navigation to dependency array
+    // Mover la solicitud de permisos de BarCodeScanner a useEffect
+    useEffect(() => {
+        (async () => {
+            const { status } = await BarCodeScanner.requestPermissionsAsync();
+            setHasPermission(status === 'granted');
+        })();
+    }, []); // Dependencia vacía para que se ejecute solo una vez al montar
 
-  const slideIn = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
+    const datosReceta = async () => {
+        setLoading(true);
+        try {
+            const currentUserString = await AsyncStorage.getItem('currentUser');
+            if (!currentUserString) {
+                setServerMessage('No hay un usuario logueado actualmente.');
+                return;
+            }
+            const currentUser = JSON.parse(currentUserString);
+            const currentUserId = currentUser.id;
+            setUserId(currentUserId);
 
-  const datosReceta = async () => {
-    setLoading(true);
-    try {
-      // Obtener el usuario actual desde el localStorage
-      const currentUserString = await AsyncStorage.getItem('currentUser');
-      if (!currentUserString) {
-        setServerMessage('No hay un usuario logueado actualmente.');
-        return;
-      }
-      const currentUser = JSON.parse(currentUserString);
-      const userId = currentUser.id;
+            if (isNaN(currentUserId)) {
+                setServerMessage('ID de usuario inválido.');
+                return;
+            }
 
-      if (isNaN(userId)) {
-        setServerMessage('ID de usuario inválido.');
-        return;
-      }
+            const response = await axios.get(`${PUERTO}/recetaGeneral`);
+            if (response.data) {
+                const recData = response.data
+                    .filter(
+                        (receta: any) =>
+                            receta.Activo > 0 && (receta.Id_Usuario_Alta === currentUserId || receta.Id_Usuario_Alta === 1)
+                    )
+                    .map((receta: any) => {
+                        const isDefault = receta.Id_Usuario_Alta === 1;
+                        const puedeEditar = !isDefault || currentUserId === 1;
 
-      // Obtener recetas del servidor
-      const response = await axios.get(`${PUERTO}/recetaGeneral`);
-      if (response.data) {
-        // Filtrar recetas activas y que coincidan con el usuario o sean predeterminadas
-        const recData = response.data
-          .filter(
-            (receta: any) =>
-              receta.Activo > 0 && (receta.Id_Usuario_Alta === userId || receta.Id_Usuario_Alta === 1)
-          )
-          .map((receta: any) => {
-            const isDefault = receta.Id_Usuario_Alta === 1;
-            const puedeEditar = !isDefault || userId === 1;
+                        return {
+                            id: receta.Id_Receta || 0,
+                            title: receta.Nombre || '',
+                            portions: receta.Porciones || '',
+                            calories: String(receta.Calorias || '0'),
+                            time: String(receta.Tiempo || '0'),
+                            image: receta.Imagen_receta ? `${PUERTO}${receta.Imagen_receta}` : 'https://via.placeholder.com/150/8CA966/FFFFFF?text=Sin+Imagen',
+                            Activo: receta.Activo,
+                            Id_Usuario_Alta: receta.Id_Usuario_Alta,
+                            editar: puedeEditar,
+                        };
+                    });
 
-            return {
-              id: receta.Id_Receta || 0, // Ensure id is a number, default to 0 if null/undefined
-              title: receta.Nombre || '',
-              portions: receta.Porciones || '',
-              calories: String(receta.Calorias || '0'),
-              time: String(receta.Tiempo || '0'),
-              image: receta.Imagen_receta ? `${PUERTO}${receta.Imagen_receta}` : 'defRec.png',
-              Activo: receta.Activo,
-              Id_Usuario_Alta: receta.Id_Usuario_Alta,
-              editar: puedeEditar,
-            };
-          });
+                setRecipes(recData);
+                console.log('Recetas obtenidas exitosamente');
+            }
+        } catch (error) {
+            console.error('Error al obtener recetas', error);
+            setServerMessage('No se pudo conectar con el servidor o ID de usuario inválido.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        // Actualizar el estado con las recetas filtradas
-        setRecipes(recData);
-        console.log('Recetas obtenidas exitosamente');
-      }
-    } catch (error) {
-      console.error('Error al obtener recetas', error);
-      setServerMessage('No se pudo conectar con el servidor o ID de usuario inválido.');
-    } finally {
-      setLoading(false); // Asegurar que el estado de carga se detenga
-    }
-  };
+    const eliminarReceta = async (id: number) => {
+        Alert.alert(
+            "Confirmar eliminación",
+            "¿Estás seguro de que quieres eliminar esta receta?",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                {
+                    text: "Eliminar",
+                    onPress: async () => {
+                        try {
+                            const response = await axios.put(`${PUERTO}/recetaGeneral/${id}`);
+                            if (response.status === 200) {
+                                setServerMessage(`Receta eliminada exitosamente.`);
+                                datosReceta();
+                            } else {
+                                setServerMessage('No se pudo eliminar la receta.');
+                            }
+                        } catch (error) {
+                            console.error('Error al eliminar receta:', error);
+                            setServerMessage('Ocurrió un error al intentar eliminar la receta.');
+                        }
+                    },
+                    style: "destructive"
+                }
+            ]
+        );
+    };
 
-  const eliminarReceta = async (id: number) => {
-    try {
-      const response = await axios.put(`${PUERTO}/recetaGeneral/${id}`);
-      if (response.status === 200) {
-        setServerMessage(`Receta eliminada exitosamente.`);
+    useEffect(() => {
         datosReceta();
-      }
-    } catch (error) {
-      console.error('Error al eliminar receta:', error);
-      setServerMessage('No se pudo eliminar la receta.');
-    }
-  };
+    }, []);
 
-  useEffect(() => {
-    datosReceta();
-  }, []); // Empty dependency array means this runs once on mount
+    useEffect(() => {
+        const filtered = recipes.filter((recipe) => {
+            const title = recipe.title.toLowerCase();
+            return (
+                (title.includes(searchTerm.toLowerCase()) ||
+                    recipe.calories.includes(searchTerm.toLowerCase()) ||
+                    recipe.time.includes(searchTerm.toLowerCase())) &&
+                recipe.Activo > 0
+            );
+        });
+        setFilteredRecipes(filtered);
+    }, [searchTerm, recipes]);
 
-  useEffect(() => {
-    const filtered = recipes.filter((recipe) => {
-      const title = recipe.title.toLowerCase();
-      return (
-        (title.includes(searchTerm.toLowerCase()) ||
-          recipe.calories.includes(searchTerm.toLowerCase()) ||
-          recipe.time.includes(searchTerm.toLowerCase())) &&
-        recipe.Activo > 0
-      );
-    });
-    setFilteredRecipes(filtered);
-  }, [searchTerm, recipes]); // Dependencies: searchTerm and recipes
+    const handleSearch = (value: string) => {
+        setSearchTerm(value.toLowerCase());
+    };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value.toLowerCase());
-  };
+    useEffect(() => {
+        if (serverMessage !== '') {
+            const timer = setTimeout(() => setServerMessage(''), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [serverMessage]);
 
-  useEffect(() => {
-    if (serverMessage !== '') {
-      const timer = setTimeout(() => setServerMessage(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [serverMessage]); // Dependency: serverMessage
+    const addExpiredProduct = (data: {
+        recipeName: string;
+        ingredientInputs: string[];
+        procedureInputs: string[];
+        portions: string;
+        type: string;
+    }) => {
+        console.log('New recipe added/submitted:', data);
+        datosReceta();
+    };
 
-  const slideOut = () => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setIsModalVisible(false));
-  };
+    // La función editExistingRecipe no se usa directamente para la navegación a EdReceta,
+    // pero se mantiene si es parte de otra lógica de onSubmit para AgReceta
+    const editExistingRecipe = (data: {
+        recipeName: string;
+        ingredientInputs: string[];
+        procedureInputs: string[];
+        portions: string;
+        type: string;
+    }, id: number) => {
+        console.log(`Recipe edited (ID: ${id}):`, data);
+        datosReceta();
+    };
 
-  const slideOutEdit = () => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setIsEditModalVisible(false));
-  };
+    const editar = (recipeId: number) => {
+        // Navega a la pantalla EdReceta pasando el idReceta
+        navigation.navigate('EdReceta', { idReceta: recipeId });
+    };
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-    setScanned(true);
-    alert(`Product code ${data} has been scanned!`);
-  };
-
-  const addNuevoIngrediente = () => {
-    setIngredientes([...ingredientes, ingredientes.length]);
-  };
-
-  const removeNuevoIngrediente = (index: number) => {
-    setIngredientes(ingredientes.filter((_, i) => i !== index));
-  };
-
-  const addExpiredProduct = (data: {
-    recipeName: string;
-    ingredientInputs: string[];
-    procedureInputs: string[];
-    portions: string;
-    type: string;
-  }) => {
-    setScanned(false);
-    addNuevoIngrediente();
-    console.log('Receta agregada:', data);
-  };
-
-  const editIngrediente = (data: {
-    recipeName: string;
-    ingredientInputs: string[];
-    procedureInputs: string[];
-    portions: string;
-    type: string;
-  }, index: number) => {
-    console.log(`Receta editada en índice ${index}:`, data);
-  };
-
-  const openEditScreen = (index: number) => {
-    console.log('Navigating to AgReceta for edit, index:', index);
-    navigation.navigate('AgReceta', {
-      isEdit: true,
-      editIndex: index,
-      recipeName: 'Pastel',
-      ingredientInputs: [''],
-      procedureInputs: [''],
-      portions: '10',
-      type: '',
-      onSubmit: (data) => editIngrediente(data, index),
-    });
-  };
-
-  const openEditModal = (index: number) => {
-    setEditIndex(index);
-    setRecipeName('Pastel'); // Placeholder
-    setIngredientInputs(['']);
-    setProcedureInputs(['']);
-    setPortions('10'); // Placeholder
-    setType('');
-    setIsEditModalVisible(true);
-    slideIn();
-  };
-
-  const onDayPress = (day: any) => {
-    setSelectedDate(day.dateString);
-    setShowCalendar(false);
-  };
-
-  const markedDates = selectedDate
-    ? {
-        [selectedDate]: { selected: true, selectedColor: '#CEDFAD' },
-      }
-    : {};
-
-  return (
-    <View style={styles.container}>
-      {serverMessage !== '' && (
-        <Text style={styles.message}>{serverMessage}</Text>
-      )}
-      <TextInput
-        placeholder="Buscar alimento..."
-        placeholderTextColor="#555"
-        value={searchTerm}
-        onChangeText={(text) => setSearchTerm(text)}
-        style={{
-          backgroundColor: 'white',
-          borderColor: '#8CA966',
-          borderWidth: 1,
-          borderRadius: 10,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          marginBottom: 15,
-          fontSize: 16,
-        }}
-      />
-      <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
-        {filteredRecipes.map((recipe, index) => (
-          <View key={index} style={styles.nuevoIngrediente}>
-            <Image source={{ uri: recipe.image }} style={styles.defaultImage} />
-            <View style={styles.textWrapper}>
-              <Text style={styles.txtIngrediente}>{recipe.title}</Text>
-              <Text style={styles.porciones}>Porciones: {recipe.portions}</Text>
-            </View>
-            {recipe.editar && (
-              <View style={styles.textWrappers}>
-                <TouchableOpacity onPress={() => openEditModal(index)}>
-                  <Image source={require('../img/Editar.png')} style={styles.trashImage} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => eliminarReceta(recipe.id)}>
-                  <Image source={require('../img/Basura.png')} style={styles.trashImage} />
-                </TouchableOpacity>
-              </View>
+    return (
+        <View style={styles.container}>
+            {serverMessage !== '' && (
+                <Text style={styles.message}>{serverMessage}</Text>
             )}
-          </View>
-        ))}
-      </ScrollView>
+            {loading && (
+                <Text style={styles.loadingText}>Cargando recetas...</Text>
+            )}
+            <TextInput
+                placeholder="Buscar receta..."
+                placeholderTextColor="#8CA966"
+                value={searchTerm}
+                onChangeText={handleSearch}
+                style={styles.searchInput}
+            />
+            <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
+                {filteredRecipes.length === 0 ? (
+                    <Text style={styles.noRecipesMessage}>No hay recetas para mostrar. ¡Añade una!</Text>
+                ) : (
+                    filteredRecipes.map((recipe, index) => (
+                        <View key={recipe.id} style={styles.recipeCard}>
+                            <Image
+                                source={{ uri: recipe.image }}
+                                style={styles.recipeImage}
+                                onError={(e) => {
+                                    console.error('Error loading recipe image for ID', recipe.id, ':', e.nativeEvent.error);
+                                    // Puedes poner una imagen de fallback aquí si lo deseas
+                                }}
+                            />
+                            <View style={styles.recipeDetails}>
+                                <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                                <Text style={styles.recipeInfo}>Porciones: {recipe.portions}</Text>
+                                <Text style={styles.recipeInfo}>Calorías: {recipe.calories}</Text>
+                                <Text style={styles.recipeInfo}>Tiempo: {recipe.time} min</Text>
+                            </View>
+                            {recipe.editar && (
+                                <View style={styles.recipeActions}>
+                                    <TouchableOpacity
+                                        onPress={() => editar(recipe.id)} // Llama a la función editar con el ID de la receta
+                                        style={styles.actionButton}
+                                    >
+                                        <MaterialIcons name="edit" size={24} color="#4CAF50" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => eliminarReceta(recipe.id)}
+                                        style={styles.actionButton}
+                                    >
+                                        <MaterialIcons name="delete" size={24} color="#E57373" />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    ))
+                )}
+            </ScrollView>
 
-      <Pressable
-        onPress={() => {
-          console.log('Pressed MasCirculo');
-          navigation.navigate('AgReceta', {
-            isEdit: false,
-            onSubmit: addExpiredProduct,
-          });
-        }}
-        style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.5 : 1 }]}
-      >
-        <Image
-          source={require('../img/MasCirculo.png')}
-          style={styles.addIcon}
-          onError={(e) => console.error('Error loading MasCirculo.png:', e.nativeEvent.error)}
-        />
-      </Pressable>
-    </View>
-  );
+            <TouchableOpacity
+                onPress={() => {
+                    console.log('Pressed Add Recipe');
+                    // Navega a AgReceta para agregar una nueva receta
+                    // Asegúrate de que los parámetros de AgReceta sean los que esperas
+                    navigation.navigate('AgReceta');
+                }}
+                style={styles.floatingAddButton}
+            >
+                <MaterialIcons name="add" size={30} color="#fff" />
+            </TouchableOpacity>
+        </View>
+    );
 };
 
-
+// --- STYLESHEET ---
 const styles = StyleSheet.create({
-  message: {
-    color: '#d9534f', // rojo para errores
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  container: {
-    flex: 1,
-    marginTop: SCREEN_HEIGHT * 0.04,
-    padding: SCREEN_WIDTH * 0.05,
-  },
-  fullScreenBox: {
-    flex: 1,
-    backgroundColor: '#CAE2B5',
-    borderRadius: SCREEN_WIDTH * 0.05,
-    borderWidth: SCREEN_WIDTH * 0.005,
-    borderColor: '#8CA966',
-    marginBottom: SCREEN_HEIGHT * 0.09,
-  },
-  scrollContent: {
-    padding: SCREEN_WIDTH * 0.05,
-    paddingBottom: SCREEN_HEIGHT * 0.05,
-  },
-  nuevoIngrediente: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#CAE2B5',
-    borderRadius: SCREEN_WIDTH * 0.025,
-    padding: SCREEN_WIDTH * 0.025,
-    marginBottom: SCREEN_HEIGHT * 0.005,
-  },
-  defaultImage: {
-    width: SCREEN_WIDTH * 0.08,
-    height: SCREEN_WIDTH * 0.08,
-    marginRight: SCREEN_WIDTH * 0.025,
-  },
-  trashImage: {
-    width: SCREEN_WIDTH * 0.042,
-    height: SCREEN_WIDTH * 0.042,
-    marginLeft: SCREEN_WIDTH * 0.025,
-  },
-  textWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  textWrappers: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  txtIngrediente: {
-    backgroundColor: 'white',
-    color: '#000000',
-    fontSize: SCREEN_WIDTH * 0.035,
-    paddingHorizontal: SCREEN_WIDTH * 0.02,
-    paddingVertical: SCREEN_HEIGHT * 0.005,
-    borderRadius: SCREEN_WIDTH * 0.025,
-    marginBottom: SCREEN_HEIGHT * 0.01,
-  },
-  porciones: {
-    backgroundColor: '#E0E0E0',
-    color: '#000000',
-    fontSize: SCREEN_WIDTH * 0.018,
-    paddingHorizontal: SCREEN_WIDTH * 0.012,
-    paddingVertical: SCREEN_HEIGHT * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.012,
-    alignSelf: 'flex-start',
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: SCREEN_HEIGHT * 0.03,
-    right: SCREEN_WIDTH * 0.05,
-    backgroundColor: '#CEDFAD',
-    padding: SCREEN_WIDTH * 0.025,
-    borderRadius: SCREEN_WIDTH * 0.012,
-    zIndex: 10,
-  },
-  addIcon: {
-    width: SCREEN_WIDTH * 0.08,
-    height: SCREEN_WIDTH * 0.08,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: SCREEN_WIDTH * 0.05,
-    borderTopRightRadius: SCREEN_WIDTH * 0.05,
-    padding: SCREEN_WIDTH * 0.05,
-    paddingBottom: SCREEN_HEIGHT * 0.05,
-    maxHeight: SCREEN_HEIGHT * 0.8,
-  },
-  modalHandle: {
-    width: SCREEN_WIDTH * 0.1,
-    height: SCREEN_HEIGHT * 0.005,
-    backgroundColor: '#ccc',
-    borderRadius: SCREEN_WIDTH * 0.01,
-    marginBottom: SCREEN_HEIGHT * 0.02,
-    alignSelf: 'center',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.02,
-  },
-  nameInput: {
-    flex: 1,
-    height: SCREEN_HEIGHT * 0.05,
-    backgroundColor: '#CAE2B5',
-    borderColor: '#8CA966',
-    borderWidth: SCREEN_WIDTH * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.02,
-    paddingHorizontal: SCREEN_WIDTH * 0.03,
-    fontSize: SCREEN_WIDTH * 0.04,
-    color: '#000',
-    marginRight: SCREEN_WIDTH * 0.02,
-  },
-  actionIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionIcon: {
-    width: SCREEN_WIDTH * 0.06,
-    height: SCREEN_WIDTH * 0.06,
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-  },
-  panel: {
-    marginBottom: SCREEN_HEIGHT * 0.02,
-  },
-  panelTitle: {
-    fontSize: SCREEN_WIDTH * 0.045,
-    fontWeight: 'bold',
-    color: '#40632F',
-    marginBottom: SCREEN_HEIGHT * 0.01,
-  },
-  panelScroll: {
-    minHeight: SCREEN_HEIGHT * 0.2,
-    maxHeight: SCREEN_HEIGHT * 0.2,
-    backgroundColor: '#CAE2B5',
-    borderColor: '#8CA966',
-    borderWidth: SCREEN_WIDTH * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.02,
-    padding: SCREEN_WIDTH * 0.02,
-  },
-  panelInput: {
-    flex: 1,
-    height: SCREEN_HEIGHT * 0.05,
-    backgroundColor: '#fff',
-    borderRadius: SCREEN_WIDTH * 0.02,
-    paddingHorizontal: SCREEN_WIDTH * 0.03,
-    fontSize: SCREEN_WIDTH * 0.04,
-    color: '#000',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  panelAddButton: {
-    alignSelf: 'center',
-    marginTop: SCREEN_HEIGHT * 0.01,
-  },
-  panelAddIcon: {
-    width: SCREEN_WIDTH * 0.06,
-    height: SCREEN_WIDTH * 0.06,
-  },
-  bottomSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  bottomIcon: {
-    width: SCREEN_WIDTH * 0.06,
-    height: SCREEN_WIDTH * 0.06,
-    marginRight: SCREEN_WIDTH * 0.02,
-  },
-  bottomInput: {
-    flex: 1,
-    height: SCREEN_HEIGHT * 0.05,
-    backgroundColor: '#CAE2B5',
-    borderColor: '#8CA966',
-    borderWidth: SCREEN_WIDTH * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.02,
-    paddingHorizontal: SCREEN_WIDTH * 0.03,
-    fontSize: SCREEN_WIDTH * 0.04,
-    color: '#000',
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-  },
-  inputWithIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.01,
-  },
-  dragHandle: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SCREEN_WIDTH * 0.02,
-  },
-  dragIcon: {
-    width: SCREEN_WIDTH * 0.06,
-    height: SCREEN_WIDTH * 0.06,
-  },
-  trashIcon: {
-    width: SCREEN_WIDTH * 0.06,
-    height: SCREEN_WIDTH * 0.06,
-    marginLeft: SCREEN_WIDTH * 0.02,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#F0F8F0',
+        padding: 20,
+        paddingTop: SCREEN_HEIGHT * 0.05,
+    },
+    message: {
+        fontSize: 16,
+        color: '#4CAF50',
+        textAlign: 'center',
+        marginBottom: 10,
+        fontWeight: 'bold',
+    },
+    loadingText: {
+        fontSize: 16,
+        color: '#1976D2',
+        textAlign: 'center',
+        marginBottom: 10,
+        fontWeight: 'bold',
+    },
+    searchInput: {
+        backgroundColor: '#E8F5E9',
+        borderColor: '#8CA966',
+        borderWidth: 1,
+        borderRadius: 25,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        marginBottom: 20,
+        fontSize: 16,
+        color: '#333',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    fullScreenBox: {
+        flex: 1,
+        backgroundColor: '#CAE2B5',
+        borderRadius: 15,
+        borderWidth: 2,
+        borderColor: '#8CA966',
+        marginBottom: 20,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 10,
+    },
+    scrollContent: {
+        padding: 15,
+        paddingBottom: 20,
+    },
+    noRecipesMessage: {
+        fontSize: 18,
+        color: '#555',
+        textAlign: 'center',
+        marginTop: 50,
+        fontStyle: 'italic',
+    },
+    recipeCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 15,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 6,
+        borderLeftWidth: 6,
+        borderColor: '#A8D8B6',
+    },
+    recipeImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        marginRight: 15,
+        borderWidth: 2,
+        borderColor: '#8CA966',
+        resizeMode: 'cover',
+    },
+    recipeDetails: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    recipeTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#388E3C',
+        marginBottom: 4,
+    },
+    recipeInfo: {
+        fontSize: 14,
+        color: '#66BB6A',
+        marginBottom: 2,
+    },
+    recipeActions: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        marginLeft: 10,
+    },
+    actionButton: {
+        padding: 5,
+        marginTop: 5,
+        borderRadius: 8,
+    },
+    floatingAddButton: {
+        position: 'absolute',
+        bottom: 30,
+        right: 30,
+        backgroundColor: '#4CAF50',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
 });
 
 const sHead = StyleSheet.create({
-  headerButtonsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.15,
-  },
-  headerIcon: {
-    width: SCREEN_WIDTH * 0.15,
-    height: SCREEN_HEIGHT * 0.07,
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-    resizeMode: 'contain',
-  },
-  headerIcon2: {
-    width: SCREEN_WIDTH * 0.16,
-    height: SCREEN_WIDTH * 0.16,
-    resizeMode: 'contain',
-  },
-  headerIconEs: {
-    marginHorizontal: SCREEN_WIDTH * 0.01,
-  },
-  naveAl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#9FAF7D',
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.07,
-    top: SCREEN_HEIGHT * 0.06,
-    paddingHorizontal: SCREEN_WIDTH * 0.02,
-  },
+    headerButtonsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'flex-end',
+        paddingRight: 5,
+    },
+    naveAl: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        backgroundColor: '#8CA966',
+        borderRadius: 25,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+        elevation: 6,
+        width: '100%',
+        height: SCREEN_HEIGHT * 0.08,
+    },
+    headerIcon: {
+        width: 50,
+        height: 50,
+        marginHorizontal: 2,
+        resizeMode: 'contain',
+    },
+    headerIcon2: {
+        width: 50,
+        height: 50,
+        resizeMode: 'contain',
+    },
+    headerIconEs: {
+        marginLeft: 2,
+    },
 });
 
 export default Recetas;

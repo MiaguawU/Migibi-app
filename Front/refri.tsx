@@ -14,17 +14,18 @@ import {
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import * as ImagePicker from 'expo-image-picker'; // For camera and gallery picker
-import { CameraView, CameraType } from 'expo-camera'; // Keep this as it is
+import * as ImagePicker from 'expo-image-picker';
+import { CameraView } from 'expo-camera';
 import { useCameraPermissions } from 'expo-camera';
 import axios from 'axios';
-import PUERTO from '../config'; // Assumes this file exports the PUERTO constant
+import PUERTO from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AddModal } from './Componentes/ModalRefri'; // ADJUST THIS PATH IF DIFFERENT!
-import {EditModal} from './Componentes/ModalEditarAlim';
+import { AddModal } from './Componentes/ModalRefri';
+import { EditModal } from './Componentes/ModalEditarAlim';
 import { ConsumoModal } from './Componentes/ModalConsumo';
 import * as ImageManipulator from 'expo-image-manipulator';
 import MinusButton from './Componentes/Elementos/BotonConsumir';
+import { MaterialIcons } from '@expo/vector-icons'; // Import MaterialIcons for edit and delete icons
 
 // Define the type for the navigation screens
 type RootStackParamList = {
@@ -37,7 +38,7 @@ type RootStackParamList = {
 
 // Define the data structure for food cards
 interface CardData {
-    id: number ; // Allow string type for ID if it comes from the API as non-numeric
+    id: number;
     ingrediente: string;
     cantidad: number;
     abreviatura: string;
@@ -56,12 +57,9 @@ type Ingrediente = {
     nombre: string;
     cantidad: string;
     caducidad: string;
-    // If your local ingredient saving logic includes the barcode
-    // codigoBarras?: string;
 };
 
 // Interfaces for the backend's image recognition response
-// These must match what your Express server sends from the FatSecret API
 interface RecognizedFoodItem {
     name: string;
     quantity: number;
@@ -75,7 +73,7 @@ interface FoodRecognitionResponse {
 interface AddModalProps {
     visible: boolean;
     onClose: () => void;
-    // CAMBIO CLAVE: onSubmit recibe un objeto con todos los datos
+    // REVERTED: onSubmit receives original data structure
     onSubmit: (data: {
         nombre: string;
         cantidad: string;
@@ -85,13 +83,13 @@ interface AddModalProps {
         imagenUri: string | null;
         codigoEscaneado?: string;
     }) => void;
-    initialNombre?: string; 
+    initialNombre?: string;
     initialCantidad?: string;
     initialCaducidad?: string;
-    initialUnidadId?: number; 
-    initialTipoId?: number; 
-    initialImagenUri?: string; 
-    initialCodigoEscaneado?: string; 
+    initialUnidadId?: number;
+    initialTipoId?: number;
+    initialImagenUri?: string;
+    initialCodigoEscaneado?: string;
 }
 
 // Get screen dimensions
@@ -102,7 +100,6 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
     state = { hasError: false };
 
     static getDerivedStateFromError() {
-        // Update state so the next render shows the fallback UI
         return { hasError: true };
     }
 
@@ -119,52 +116,43 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 }
 
 const Refri = () => {
-    // States for permissions and camera/scanner view control
-     const [cameraPermission, requestPermission] = useCameraPermissions(); // Use the hook here
+    const [cameraPermission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
-    const [processingScan, setProcessingScan] = useState(false); 
+    const [processingScan, setProcessingScan] = useState(false);
 
-    // States for food management in the UI
     const [alimentosPerecederos, setAlimentosPerecederos] = useState<CardData[]>([]);
     const [alimentosNoPerecederos, setAlimentosNoPerecederos] = useState<CardData[]>([]);
-    const [searchTerm, setSearchTerm] = useState(''); // For search functionality
-    const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]); 
+    const [searchTerm, setSearchTerm] = useState('');
+    const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
     const [edAlimento, setEdAlimento] = useState<number | null>(null);
     const [consAlimento, setConsAlimento] = useState<number | null>(null);
 
-    // States for add/edit modal
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-    const [isEditModalVisible, setIsEditModalVisible] = useState(false); // Visibility of the edit modal
-    const [editIndex, setEditIndex] = useState<number | null>(null); // Index of the food item to edit
-    const [nombre, setNombre] = useState(''); // Name field of the modal
-    const [cantidad, setCantidad] = useState(''); // Quantity field of the modal
-    const [caducidad, setCaducidad] = useState(''); // Expiry date field of the modal
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editIndex, setEditIndex] = useState<number | null>(null);
+    const [nombre, setNombre] = useState('');
+    const [cantidad, setCantidad] = useState('');
+    const [caducidad, setCaducidad] = useState('');
     const [codigoEscaneadoParaModal, setCodigoEscaneadoParaModal] = useState<string>('');
 
-    // States for server communication and UI feedback
-    const [serverMessage, setServerMessage] = useState(''); // Success/error messages from the server
-    const [isLoading, setIsLoading] = useState(false); // Loading indicator for FatSecret requests
-    const [errorMessage, setErrorMessage] = useState<string | null>(null); // Detailed error messages
+    const [serverMessage, setServerMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // States specific to the image recognition and scanning flow
-    const [scannedCode, setScannedCode] = useState<string>(''); // NEW! Stores the scanned barcode
-    const [foodQueue, setFoodQueue] = useState<string[]>([]); // Queue of food names detected by image/barcode
-    const [currentFoodName, setCurrentFoodName] = useState<string>(''); // Current name displayed in the queue modal
+    const [scannedCode, setScannedCode] = useState<string>('');
+    const [foodQueue, setFoodQueue] = useState<string[]>([]);
+    const [currentFoodName, setCurrentFoodName] = useState<string>('');
 
-    // Reference for the Camera component (from expo-camera)
-    const cameraRef = useRef<CameraView>(null); // Using 'any' as a workaround for complex TypeScript typing of Expo Camera
+    const cameraRef = useRef<CameraView>(null);
 
-    // Navigation hook
     const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-    // Function to navigate between screens
     const navigateToScreen = (screenName: keyof RootStackParamList) => {
         navigation.navigate(screenName);
     };
-    
-    // Effect to clear server messages after a timeout
+
     useEffect(() => {
         if (serverMessage !== '') {
             const timer = setTimeout(() => setServerMessage(''), 5000);
@@ -172,21 +160,16 @@ const Refri = () => {
         }
     }, [serverMessage]);
 
-    // Effect to request camera and media library permissions on component mount
     useEffect(() => {
         (async () => {
-            // Keep only ImagePicker permission if you use it for gallery access
             const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (mediaLibraryStatus !== 'granted') {
                 console.warn('Permiso de galería no concedido. Algunas funcionalidades podrían no estar disponibles.');
             }
         })();
     }, []);
-    
-     useEffect(() => {
-        // Open the modal only if there are items in the queue,
-        // the modal is not already visible,
-        // AND there's a current food name set (meaning processing is done and a valid food was found).
+
+    useEffect(() => {
         if (foodQueue.length > 0 && !isAddModalVisible && currentFoodName) {
             setIsAddModalVisible(true);
         }
@@ -194,24 +177,24 @@ const Refri = () => {
 
     const handleCloseAddModal = () => {
         setIsAddModalVisible(false);
-        setProcessingScan(false); // Reinicia el estado de procesamiento
-        setScanned(false); // Reinicia el estado de escaneo (para permitir escanear de nuevo)
-        setFoodQueue([]); // Limpia la cola de alimentos reconocidos
-        setCurrentFoodName(''); // Limpia el nombre del alimento actual
-        setScannedCode(''); // Limpia cualquier código escaneado almacenado
-        setCodigoEscaneadoParaModal(''); // Asegúrate de limpiar también este estado
-        setErrorMessage(null); // Limpia cualquier mensaje de error
+        setProcessingScan(false);
+        setScanned(false);
+        setFoodQueue([]);
+        setCurrentFoodName('');
+        setScannedCode('');
+        setCodigoEscaneadoParaModal('');
+        setErrorMessage(null);
     };
 
-const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+    const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
         if (processingScan) {
             console.log("Already processing a scan, ignoring new barcode.");
             return;
         }
 
-        setScanned(true); // Indicate a scan has occurred
-        setShowScanner(false); // Hide the scanner UI immediately
-        setProcessingScan(true); // Set to true at the very beginning of processing the barcode
+        setScanned(true);
+        setShowScanner(false);
+        setProcessingScan(true);
 
         setCodigoEscaneadoParaModal(data);
         setIsLoading(true);
@@ -222,121 +205,124 @@ const handleBarCodeScanned = async ({ type, data }: { type: string; data: string
 
             if (response.status === 200 && response.data.nombreCompleto) {
                 setServerMessage("Código escaneado correctamente. Datos recibidos del servidor.");
-                // Set the current food name and add to queue
                 setCurrentFoodName(response.data.nombreCompleto);
-                setFoodQueue([response.data.nombreCompleto]); // Add the recognized food to the queue
+                setFoodQueue([response.data.nombreCompleto]);
             } else {
-                setProcessingScan(false); // Reset on failure so scanner can be used again
-                setScanned(false);        // Allow re-scanning
+                setProcessingScan(false);
+                setScanned(false);
                 setServerMessage("No se encontraron resultados para este código de barras.");
                 Alert.alert("Código no reconocido", "No se encontró un alimento para este código de barras. Intenta añadirlo manualmente.");
             }
         } catch (error: any) {
-            setProcessingScan(false); // Reset on error so scanner can be used again
+            setProcessingScan(false);
             setScanned(false);
             console.error("Error al enviar código escaneado:", error.response ? error.response.data : error.message);
             setServerMessage("No se pudo conectar con el servidor al escanear.");
             Alert.alert("Error de Conexión", "No se pudo conectar con el servidor para escanear el código. Intenta añadirlo manualmente.");
         } finally {
-            setIsLoading(false); // End loading regardless of outcome
-            // processingScan is NOT reset here. It is reset when the modal is submitted or closed.
+            setIsLoading(false);
         }
     };
-    // ... (inside Refri component)
 
-   const takePhotoAndRecognize = async () => {
-    // ... (código de permisos y estados iniciales)
+    const takePhotoAndRecognize = async () => {
+        if (cameraRef.current) {
+            setIsLoading(true);
+            setErrorMessage(null);
+            setFoodQueue([]);
+            setNombre(''); setCantidad(''); setCaducidad('');
+            setScannedCode('');
 
-    if (cameraRef.current) {
-        setIsLoading(true);
-        setErrorMessage(null);
-        setFoodQueue([]);
-        setNombre(''); setCantidad(''); setCaducidad('');
-        setScannedCode('');
+            try {
+                const photo = await cameraRef.current.takePictureAsync({
+                    base64: true,
+                    quality: 1,
+                    exif: false,
+                });
 
-        try {
-            const photo = await cameraRef.current.takePictureAsync({
-                base64: true,
-                quality: 1, // Toma la foto con la mejor calidad para manipularla después
-                exif: false,
-            });
+                setShowCamera(false);
 
-            setShowCamera(false);
+                if (photo && photo.base64) {
+                    const manipResult = await ImageManipulator.manipulateAsync(
+                        photo.uri,
+                        [{ resize: { width: 800 } }],
+                        { compress: 0.7, format: ImageManipulator.SaveFormat.WEBP, base64: true }
+                    );
 
-            if (photo && photo.base64) {
-                // --- NUEVA LÓGICA DE MANIPULACIÓN DE IMAGEN ---
-                // Dentro de takePhotoAndRecognize
-const manipResult = await ImageManipulator.manipulateAsync(
-    photo.uri,
-    [{ resize: { width: 800 } }],
-    // Prueba con WEBP si tu servidor lo soporta bien para mayor compresión
-    { compress: 0.7, format: ImageManipulator.SaveFormat.WEBP, base64: true }
-);
+                    if (manipResult.base64) {
+                        const response = await axios.post<FoodRecognitionResponse>(`${PUERTO}/alimento/recognize-food-image`, {
+                            image_b64: manipResult.base64,
+                        });
 
-                if (manipResult.base64) {
-                    const response = await axios.post<FoodRecognitionResponse>(`${PUERTO}/alimento/recognize-food-image`, {
-                        image_b64: manipResult.base64, // ¡Aquí enviamos el Base64 de la imagen OPTIMIZADA!
-                    });
-
-                    if (response.data && response.data.recognizedFoodsDetailed && response.data.recognizedFoodsDetailed.length > 0) {
-                        setServerMessage("Alimentos detectados exitosamente.");
-                        const foodNames = response.data.recognizedFoodsDetailed.map(item => item.name);
-                        setFoodQueue(foodNames);
+                        if (response.data && response.data.recognizedFoodsDetailed && response.data.recognizedFoodsDetailed.length > 0) {
+                            setServerMessage("Alimentos detectados exitosamente.");
+                            const foodNames = response.data.recognizedFoodsDetailed.map(item => item.name);
+                            setFoodQueue(foodNames);
+                        } else {
+                            setServerMessage("No se detectaron alimentos en la imagen.");
+                            setFoodQueue(['']);
+                        }
                     } else {
-                        setServerMessage("No se detectaron alimentos en la imagen.");
+                        setErrorMessage("No se pudo obtener la imagen manipulada en formato Base64.");
                         setFoodQueue(['']);
                     }
                 } else {
-                    setErrorMessage("No se pudo obtener la imagen manipulada en formato Base64.");
+                    setErrorMessage("No se pudo obtener la imagen en formato Base64.");
                     setFoodQueue(['']);
                 }
-                // --- FIN DE LA NUEVA LÓGICA ---
-
-            } else {
-                setErrorMessage("No se pudo obtener la imagen en formato Base64.");
+            } catch (error: any) {
+                console.error('Error al tomar foto o enviar al servidor:', error.response ? error.response.data : error.message);
+                let msg = 'Error al reconocer la imagen de alimentos.';
+                if (axios.isAxiosError(error) && error.response) {
+                    msg = error.response.data.mensaje || msg;
+                }
+                setErrorMessage(msg);
                 setFoodQueue(['']);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error: any) {
-            console.error('Error al tomar foto o enviar al servidor:', error.response ? error.response.data : error.message);
-            let msg = 'Error al reconocer la imagen de alimentos.';
-            if (axios.isAxiosError(error) && error.response) {
-                msg = error.response.data.mensaje || msg;
-            }
-            setErrorMessage(msg);
-            setFoodQueue(['']);
-        } finally {
-            setIsLoading(false);
         }
-    }
-};
+    };
 
     const resetAddModalState = () => {
-        setCodigoEscaneadoParaModal(''); // Clear scanned code
-        setCurrentFoodName(''); // Clear the current food name
-        setFoodQueue([]); // Clear the food queue
-        setProcessingScan(false); // Reset processing scan
-        setScanned(false); // Allow re-scanning
+        setCodigoEscaneadoParaModal('');
+        setCurrentFoodName('');
+        setFoodQueue([]);
+        setProcessingScan(false);
+        setScanned(false);
     };
 
-
-    // Function to delete a food item (assumes it connects to your backend)
     const eliminarAlimento = async (id: number | string) => {
-        try {
-            const response = await axios.put(`${PUERTO}/alimentoInactivo/${id}`, { id });
+        Alert.alert(
+            "Confirmar eliminación",
+            "¿Estás seguro de que quieres eliminar este alimento?",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                {
+                    text: "Eliminar",
+                    onPress: async () => {
+                        try {
+                            const response = await axios.put(`${PUERTO}/alimentoInactivo/${id}`, { id });
 
-            if (response.status === 200) {
-                setServerMessage("Alimento eliminado exitosamente.");
-                datosAlimento(); // Reload food data after deletion
-            } else {
-                setServerMessage("No se pudo eliminar el alimento.");
-            }
-        } catch (error) {
-            console.error("Error al eliminar alimento:", error);
-            setServerMessage("Ocurrió un error al intentar eliminar el alimento.");
-        }
+                            if (response.status === 200) {
+                                setServerMessage("Alimento eliminado exitosamente.");
+                                datosAlimento();
+                            } else {
+                                setServerMessage("No se pudo eliminar el alimento.");
+                            }
+                        } catch (error) {
+                            console.error("Error al eliminar alimento:", error);
+                            setServerMessage("Ocurrió un error al intentar eliminar el alimento.");
+                        }
+                    },
+                    style: "destructive"
+                }
+            ]
+        );
     };
 
-    // Function to get food data from the server
     const datosAlimento = async () => {
         try {
             const currentUserString = await AsyncStorage.getItem('currentUser');
@@ -353,22 +339,21 @@ const manipResult = await ImageManipulator.manipulateAsync(
             }
 
             const response = await axios.get(`${PUERTO}/alimento/${userId}`);
-            // Use type assertions for the API response based on the expected structure
             const { Perecedero, NoPerecedero } = response.data as { Perecedero: any[], NoPerecedero: any[] };
 
             if (Array.isArray(Perecedero) && Array.isArray(NoPerecedero)) {
                 const perecederos: CardData[] = Perecedero.filter(
-                    (alimento: any) => alimento.Id_Usuario_Alta === userId
+                    (alimento: any) => alimento.Id_Usuario_Alta === userId && alimento.Activo > 0 && alimento.Cantidad > 0
                 ).map((alimento: any) => {
                     const fechaCaducidad = alimento.Fecha_Caducidad ? new Date(alimento.Fecha_Caducidad) : null;
                     const caducidadPasada = fechaCaducidad ? fechaCaducidad < new Date() : null;
                     const diasRestantes = fechaCaducidad
                         ? Math.max(
-                              0,
-                              Math.ceil(
-                                  (fechaCaducidad.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                              )
-                          )
+                            0,
+                            Math.ceil(
+                                (fechaCaducidad.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                            )
+                        )
                         : 'No definida';
                     const fecha = fechaCaducidad ? fechaCaducidad.toLocaleDateString() : 'Fecha no disponible';
 
@@ -377,7 +362,7 @@ const manipResult = await ImageManipulator.manipulateAsync(
                         ingrediente: alimento.Nombre || ' ',
                         cantidad: alimento.Cantidad || 1,
                         abreviatura: alimento.Unidad || ' ',
-                        image: alimento.Imagen ? `${PUERTO}${alimento.Imagen}` : '/imagenes/defIng.png',
+                        image: alimento.Imagen ? `${PUERTO}${alimento.Imagen}` : 'https://via.placeholder.com/150/8CA966/FFFFFF?text=Sin+Imagen',
                         fecha: caducidadPasada ? fecha : `${diasRestantes} días`,
                         diasRestantes,
                         caducidadPasada,
@@ -388,14 +373,14 @@ const manipResult = await ImageManipulator.manipulateAsync(
                 });
 
                 const noPerecederos: CardData[] = NoPerecedero.filter(
-                    (alimento: any) => alimento.Id_Usuario_Alta === userId
+                    (alimento: any) => alimento.Id_Usuario_Alta === userId && alimento.Activo > 0 && alimento.Cantidad > 0
                 ).map((alimento: any) => ({
                     id: alimento.id || 0,
                     ingrediente: alimento.Nombre || ' ',
                     cantidad: alimento.Cantidad || 0,
                     abreviatura: alimento.Unidad || ' ',
-                    image: alimento.Imagen ? `${PUERTO}${alimento.Imagen}` : '/imagenes/defIng.png',
-                    fecha: '🧀', // Icon for non-perishable items
+                    image: alimento.Imagen ? `${PUERTO}${alimento.Imagen}` : 'https://via.placeholder.com/150/8CA966/FFFFFF?text=Sin+Imagen',
+                    fecha: '🎉 Indefinido',
                     diasRestantes: 'No aplica',
                     caducidadPasada: false,
                     Tipo: alimento.Tipo_Alimento,
@@ -415,30 +400,25 @@ const manipResult = await ImageManipulator.manipulateAsync(
         }
     };
 
-    // Handle search input
     const handleSearch = (value: string) => {
         setSearchTerm(value.toLowerCase());
     };
 
-    // Load food items on component mount
     useEffect(() => {
         datosAlimento();
     }, []);
 
-    // Filter food items based on search term
     const filteredAlimentos = [...alimentosPerecederos, ...alimentosNoPerecederos].filter((alimento) => {
         const nombre = alimento.ingrediente.toLowerCase();
         const tipo = alimento.Tipo.toLowerCase();
-        const cantidad = alimento.cantidad.toString(); // Convert to string for search
+        const cantidad = alimento.cantidad.toString();
         return (
             (nombre.includes(searchTerm) ||
                 tipo.includes(searchTerm) ||
-                cantidad.includes(searchTerm)) &&
-            alimento.cantidad > 0 && alimento.Activo > 0 // Only show active and with quantity > 0
+                cantidad.includes(searchTerm))
         );
     });
 
-    // Animations for the food list
     const animatedValues = filteredAlimentos.map(() => new Animated.Value(0));
 
     useEffect(() => {
@@ -446,14 +426,12 @@ const manipResult = await ImageManipulator.manipulateAsync(
             Animated.timing(anim, {
                 toValue: 1,
                 duration: 500,
-                delay: index * 100, // Staggered delay for a fade-in effect
+                delay: index * 100,
                 useNativeDriver: true,
             }).start();
         });
-    }, [filteredAlimentos]); // Re-run animation when filtered food items change
+    }, [filteredAlimentos]);
 
-
-    // Navigation header configuration (adjusted to use hasCameraPermission)
     useLayoutEffect(() => {
         navigation.setOptions({
             headerBackTitleVisible: false,
@@ -462,11 +440,10 @@ const manipResult = await ImageManipulator.manipulateAsync(
             headerStyle: {
                 height: SCREEN_HEIGHT * 0.15,
             },
+            headerLeft: () => null,
             headerRight: () => (
-                // Header buttons container
                 <View style={sHead.headerButtonsContainer}>
                     <View style={sHead.naveAl}>
-                        {/* Navigation buttons */}
                         <Pressable onPress={() => navigateToScreen('Hoy')}>
                             <Image source={require('../img/bHoy1.png')} style={sHead.headerIcon} />
                         </Pressable>
@@ -486,49 +463,54 @@ const manipResult = await ImageManipulator.manipulateAsync(
                 </View>
             ),
         });
-    }, [navigation]); // Depends on navigation
+    }, [navigation]);
 
     const onAddModalClose = () => {
         setIsAddModalVisible(false);
-        // --- MODIFIED: Call the reset function when modal closes ---
         resetAddModalState();
     };
 
-    // Function to remove an ingredient from the local list (not from the backend)
     const removeNuevoIngrediente = (id: number) => {
         setIngredientes(ingredientes.filter((ing) => ing.id !== id));
     };
 
-    // Function to edit an existing ingredient
     const editIngrediente = () => {
         if (editIndex !== null) {
-            // Update the ingredient in the local list
             const updatedIngredientes = ingredientes.map((ing, index) =>
                 index === editIndex ? { ...ing, nombre, cantidad, caducidad } : ing
             );
             setIngredientes(updatedIngredientes);
         }
-        // Clear fields and close the edit modal
         setNombre('');
         setCantidad('');
         setCaducidad('');
         setIsEditModalVisible(false);
         setEditIndex(null);
-        datosAlimento(); // Reload data after editing
+        datosAlimento();
     };
 
-    // Function to open the edit modal
-    const openEditModal = (index: number) => {
-        // Ensure that CardData and Ingrediente types match or convert
-        const alimentoAEditar = filteredAlimentos[index];
-        setEditIndex(index);
-        setNombre(alimentoAEditar.ingrediente); // The existing ingredient's name
-        setCantidad(alimentoAEditar.cantidad.toString()); // Ensure it's a string for TextInput
-        setCaducidad(alimentoAEditar.fecha); // Or the original date field if you have it in a specific format
-        setIsEditModalVisible(true);
+    const openEditModal = (alimento: CardData) => {
+        // Find the actual index of the item in the original `filteredAlimentos` list
+        const indexToEdit = filteredAlimentos.findIndex(item => item.id === alimento.id);
+        if (indexToEdit !== -1) {
+            setEdAlimento(alimento.id); // Set the ID of the food to be edited
+            setEditIndex(indexToEdit); // Set the index for the local state if needed for something else
+            setNombre(alimento.ingrediente);
+            setCantidad(alimento.cantidad.toString());
+            // Format the date for display if it's a date string, otherwise use what's there
+            // Ensure caducidad is a string that can be directly passed to the modal.
+            // If it's "Fecha no disponible", etc., pass null or an empty string for the date picker.
+            const initialCaducidadForModal = typeof alimento.fecha === 'string' && alimento.fecha.includes('/')
+                ? alimento.fecha // Assuming 'DD/MM/YYYY' or similar
+                : null; // Or use a specific default date if preferred
+            setCaducidad(initialCaducidadForModal || ''); // Pass an empty string if no valid date
+
+            setIsEditModalVisible(true);
+        }
     };
 
-    const openCamera = async () => { // Function is now async
+
+    const openCamera = async () => {
         if (!cameraPermission?.granted) {
             const permissionResult = await requestPermission();
             if (!permissionResult.granted) {
@@ -544,7 +526,6 @@ const manipResult = await ImageManipulator.manipulateAsync(
     };
 
     const openScanner = async () => {
-        // Request camera permission if not granted
         if (!cameraPermission?.granted) {
             const permissionResult = await requestPermission();
             if (!permissionResult.granted) {
@@ -553,57 +534,52 @@ const manipResult = await ImageManipulator.manipulateAsync(
             }
         }
         setShowScanner(true);
-        // --- MODIFIED: Clear all scan-related states when opening scanner manually ---
         setScanned(false);
-        setNombre(''); setCantidad(''); setCaducidad(''); // Clear potential previous modal data
+        setNombre(''); setCantidad(''); setCaducidad('');
         setFoodQueue([]);
         setScannedCode('');
-        setProcessingScan(false); // Ensure processingScan is false when opening manually
-        setCurrentFoodName(''); // Ensure current food name is clear
+        setProcessingScan(false);
+        setCurrentFoodName('');
     };
 
-    // Camera view component for taking photos
-   const renderCameraView = () => {
-    if (cameraPermission === null) {
-        return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
-    }
-    if (!cameraPermission.granted) {
+    const renderCameraView = () => {
+        if (cameraPermission === null) {
+            return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
+        }
+        if (!cameraPermission.granted) {
+            return (
+                <View style={styles.permissionContainer}>
+                    <Text style={styles.permissionText}>No se tiene acceso a la cámara.</Text>
+                    <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
+                        <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+
         return (
-            <View style={styles.permissionContainer}>
-                <Text style={styles.permissionText}>No se tiene acceso a la cámara.</Text>
-                <TouchableOpacity onPress={requestPermission} style={styles.requestPermissionButton}>
-                    <Text style={styles.requestPermissionButtonText}>Conceder Permiso</Text>
-                </TouchableOpacity>
+            <View style={styles.fullScreen}>
+                <CameraView
+                    style={styles.cameraFull}
+                    ref={cameraRef}
+                    facing={'back'}
+                >
+                    <View style={styles.cameraControls}>
+                        <TouchableOpacity style={styles.captureButton} onPress={takePhotoAndRecognize}>
+                            <Text style={styles.captureButtonText}>Capturar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setShowCamera(false)}
+                        >
+                            <Text style={styles.closeText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </CameraView>
             </View>
         );
-    }
+    };
 
-    return (
-    <View style={styles.fullScreen}>
-        <CameraView
-            style={styles.cameraFull}
-            ref={cameraRef}
-            // === FIX FOR 'type' PROP ERROR ===
-            // Use 'facing' prop instead of 'type'
-            // Values are 'back' or 'front' strings.
-            facing={'back'} // Explicitly use 'back' as a string
-        >
-            <View style={styles.cameraControls}>
-                <TouchableOpacity style={styles.captureButton} onPress={takePhotoAndRecognize}>
-                    <Text style={styles.captureButtonText}>Capturar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setShowCamera(false)}
-                >
-                    <Text style={styles.closeText}>Cerrar</Text>
-                </TouchableOpacity>
-            </View>
-        </CameraView>
-    </View>
-);
-};
-    // Barcode scanner view component
     const renderScannerView = () => {
         if (cameraPermission === null) {
             return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
@@ -622,7 +598,6 @@ const manipResult = await ImageManipulator.manipulateAsync(
         return (
             <View style={styles.fullScreen}>
                 <BarCodeScanner
-                    // --- MODIFIED: Disable scanner if processingScan is true ---
                     onBarCodeScanned={processingScan ? undefined : handleBarCodeScanned}
                     style={styles.cameraFull}
                     barCodeTypes={[
@@ -635,7 +610,6 @@ const manipResult = await ImageManipulator.manipulateAsync(
                     style={styles.closeButton}
                     onPress={() => {
                         setShowScanner(false);
-                        // --- MODIFIED: Reset states when manually closing scanner view ---
                         setScanned(false);
                         setScannedCode('');
                         setProcessingScan(false);
@@ -649,8 +623,6 @@ const manipResult = await ImageManipulator.manipulateAsync(
         );
     };
 
-
-    // Logic to conditionally render camera or scanner
     if (showCamera) {
         return renderCameraView();
     }
@@ -658,119 +630,180 @@ const manipResult = await ImageManipulator.manipulateAsync(
         return renderScannerView();
     }
 
-    // Main render of the Refri component
     return (
         <ErrorBoundary>
             <View style={styles.container}>
-                {serverMessage !== '' && ( // Show server messages
+                {serverMessage !== '' && (
                     <Text style={styles.message}>{serverMessage}</Text>
                 )}
-                {errorMessage && ( // Show API error messages
+                {errorMessage && (
                     <Text style={styles.errorMessage}>{errorMessage}</Text>
                 )}
-                {isLoading && ( // Show a loading indicator
+                {isLoading && (
                     <Text style={styles.loadingMessage}>Procesando imagen...</Text>
                 )}
 
-                {/* Search input field */}
                 <TextInput
                     placeholder="Buscar alimento..."
-                    placeholderTextColor="#555"
+                    placeholderTextColor="#8CA966"
                     value={searchTerm}
                     onChangeText={(text) => setSearchTerm(text)}
-                    style={{
-                        backgroundColor: 'white',
-                        borderColor: '#8CA966',
-                        borderWidth: 1,
-                        borderRadius: 10,
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        marginBottom: 15,
-                        fontSize: 16,
-                    }}
+                    style={styles.searchInput}
                 />
 
-                {/* Food list container */}
                 <ScrollView style={styles.fullScreenBox} contentContainerStyle={styles.scrollContent}>
-                    {filteredAlimentos.map((alimento, index) => {
-                        // Animations for each list item
-                        const translateY = animatedValues[index].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [20, 0],
-                        });
-                        const opacity = animatedValues[index];
+                    {filteredAlimentos.length === 0 ? (
+                        <Text style={styles.noFoodMessage}>No hay alimentos para mostrar. ¡Añade algunos!</Text>
+                    ) : (
+                        filteredAlimentos.map((alimento, index) => {
+                            const translateY = animatedValues[index].interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [20, 0],
+                            });
+                            const opacity = animatedValues[index];
 
-                        return (
-                            <Animated.View
-                                key={alimento.id}
-                                style={[
-                                    styles.nuevoIngrediente,
-                                    { opacity, transform: [{ translateY }] },
-                                ]}
-                            >
-                                <Image source={{ uri: alimento.image }} style={styles.defaultImage} />
-                                <View style={styles.textWrapper}>
-                                    <Text style={styles.txtIngrediente}>{alimento.ingrediente}</Text>
-                                    <Text style={styles.porciones}>
-                                        {alimento.cantidad} {alimento.abreviatura}
-                                    </Text>
-                                    <Text style={{ fontSize: 12, color: alimento.caducidadPasada ? 'red' : 'green' }}>
-                                        {alimento.fecha}
-                                    </Text>
-                                </View>
-                                <View style={styles.textWrappers}>
-                                    <MinusButton
+                            const isExpired = alimento.caducidadPasada;
+                            let daysRemainingText = 'No aplica';
+                            let expiryDateStyle = styles.safeText;
+
+                            if (alimento.Tipo === 'Perecedero') {
+                                if (typeof alimento.diasRestantes === 'number') {
+                                    daysRemainingText = `${alimento.diasRestantes} día${alimento.diasRestantes === 1 ? '' : 's'}`;
+                                    if (isExpired) {
+                                        expiryDateStyle = styles.expiredText;
+                                    } else if (alimento.diasRestantes <= 3 && alimento.diasRestantes > 0) {
+                                        expiryDateStyle = styles.expiringSoonText;
+                                    } else {
+                                        expiryDateStyle = styles.safeText;
+                                    }
+                                } else { // It's a string like 'No definida'
+                                    daysRemainingText = alimento.diasRestantes;
+                                    expiryDateStyle = styles.defaultExpiryText; // A neutral style for undefined/N/A
+                                }
+                            } else {
+                                daysRemainingText = '🎉 Indefinido'; // For non-perishable
+                                expiryDateStyle = styles.safeText; // Non-perishable are always 'safe'
+                            }
+
+
+                            return (
+                                <Animated.View
+                                    key={alimento.id}
+                                    style={[
+                                        styles.foodCard,
+                                        { opacity, transform: [{ translateY }] },
+                                    ]}
+                                >
+                                    <Image
+                                        source={{ uri: alimento.image }}
+                                        style={styles.foodImage}
+                                        onError={(e) => console.log('Image loading error for ID', alimento.id, ':', e.nativeEvent.error)}
+                                    />
+                                    <View style={styles.foodDetails}>
+                                        <Text style={styles.foodName}>{alimento.ingrediente}</Text>
+                                        <Text style={styles.foodQuantity}>
+                                            {alimento.cantidad} {alimento.abreviatura}
+                                        </Text>
+                                        <Text style={[styles.foodExpiry, expiryDateStyle]}>
+                                            {alimento.Tipo === 'Perecedero' ? `Vence en: ${daysRemainingText}` : alimento.fecha}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.foodActions}>
+                                        <MinusButton
                                             onPress={() => setConsAlimento(alimento.id)}
-                                            size={24} // Puedes ajustar el tamaño aquí
-                                            color="#ffffff" // Color del icono
-                                            style={styles.minusButton} // Estilo adicional para el botón
+                                            size={26}
+                                            color="#8CA966"
+                                            style={styles.actionButton}
                                         />
-                                    <Pressable onPress={() => setEdAlimento(alimento.id)}>
-                                        <Image source={require('../img/Editar.png')} style={styles.trashImage} />
-                                    </Pressable>
-                                    <Pressable onPress={() => eliminarAlimento(alimento.id)}>
-                                        <Image source={require('../img/Basura.png')} style={styles.trashImage} />
-                                    </Pressable>
-                                </View>
-                            </Animated.View>
-                        );
-                    })}
+                                        <TouchableOpacity onPress={() => openEditModal(alimento)} style={styles.actionButton}>
+                                            <MaterialIcons name="edit" size={26} color="#4CAF50" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => eliminarAlimento(alimento.id)} style={styles.actionButton}>
+                                            <MaterialIcons name="delete" size={26} color="#E57373" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
+                            );
+                        })
+                    )}
                 </ScrollView>
 
-                {/* Bottom icons container */}
-                <View style={styles.bottomIconsContainer}>
-                    <View style={styles.leftIcons}>
-                        {/* Button to open photo camera */}
-                        <Pressable style={styles.iconButton} onPress={openCamera}>
-                            <Image source={require('../img/Camara.png')} style={styles.cameraImage} />
-                        </Pressable>
-                        {/* Button to open barcode scanner */}
-                        <Pressable style={styles.iconButton} onPress={openScanner}>
-                            <Image source={require('../img/Scanner.png')} style={styles.scannerImage} />
-                        </Pressable>
-                    </View>
-                    {/* Button to add food manually */}
-                    <Pressable style={styles.addButton} onPress={() => {
-                        setNombre('');
-                        setCantidad('');
-                        setCaducidad('');
-                        setFoodQueue([]); // Clear queue if opening manually
-                        setScannedCode(''); // Clear scanned code if opening manually
-                        setIsAddModalVisible(true); // Open add modal
-                    }}>
-                        <Image source={require('../img/MasCirculo.png')} style={styles.addIcon} />
-                    </Pressable>
+                {/* Add/Scan/Photo buttons */}
+                <View style={styles.bottomButtonsContainer}>
+                    <TouchableOpacity onPress={() => setIsAddModalVisible(true)} style={styles.addButton}>
+                        <MaterialIcons name="add" size={30} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={openScanner} style={styles.scanButton}>
+                        <MaterialIcons name="qr-code-scanner" size={30} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={openCamera} style={styles.photoButton}>
+                        <MaterialIcons name="camera-alt" size={30} color="#fff" />
+                    </TouchableOpacity>
                 </View>
 
-               <AddModal
-                               visible={isAddModalVisible}
-                               onClose={handleCloseAddModal}
-                               onSubmit={datosAlimento} // Tu función onSubmit recibe un objeto 'data'
-                               initialNombre={currentFoodName} // Pasa el nombre de la cola
-                               initialCodigoEscaneado={codigoEscaneadoParaModal} // Pasa el código escaneado
-                               // Ya no pasamos setNombre, setCantidad, setCaducidad, etc.
-                           />
-               
+                {/* Modals */}
+                <AddModal
+                    visible={isAddModalVisible}
+                    onClose={handleCloseAddModal}
+                    onSubmit={async (data) => {
+                        console.log('Datos a enviar:', data);
+                        try {
+                            const currentUserString = await AsyncStorage.getItem('currentUser');
+                            if (!currentUserString) {
+                                Alert.alert('Error', 'No hay usuario autenticado.');
+                                return;
+                            }
+                            const currentUser = JSON.parse(currentUserString);
+                            const userId = currentUser.id;
+
+                            const formData = new FormData();
+                            formData.append('Nombre', data.nombre);
+                            formData.append('Cantidad', data.cantidad);
+                            if (data.caducidad) {
+                                formData.append('Fecha_Caducidad', data.caducidad);
+                            }
+                            if (data.unidadId) {
+                                formData.append('Id_Unidad_Medida', data.unidadId.toString());
+                            }
+                            if (data.tipoId) {
+                                formData.append('Id_Tipo_Alimento', data.tipoId.toString());
+                            }
+                            formData.append('Id_Usuario_Alta', userId.toString());
+                            if (data.codigoEscaneado) {
+                                formData.append('Codigo_Barras', data.codigoEscaneado);
+                            }
+
+                            if (data.imagenUri) {
+                                const fileExtension = data.imagenUri.split('.').pop();
+                                const fileName = `image_${Date.now()}.${fileExtension}`;
+                                formData.append('Imagen', {
+                                    uri: data.imagenUri,
+                                    name: fileName,
+                                    type: `image/${fileExtension}`,
+                                } as any);
+                            }
+
+                            const response = await axios.post(`${PUERTO}/alimento`, formData, {
+                                headers: {
+                                    'Content-Type': 'multipart/form-data',
+                                },
+                            });
+
+                            if (response.status === 201) {
+                                setServerMessage('Alimento agregado exitosamente.');
+                                datosAlimento(); // Refresh the list
+                                handleCloseAddModal(); // Close and reset the modal
+                            } else {
+                                setServerMessage('Error al agregar alimento.');
+                            }
+                        } catch (error: any) {
+                            console.error('Error al agregar alimento:', error.response?.data || error.message);
+                            setServerMessage(`Error al agregar alimento: ${error.response?.data?.mensaje || error.message}`);
+                        }
+                    }}
+                    initialNombre={currentFoodName} // Pass the recognized food name to the modal
+                    initialCodigoEscaneado={codigoEscaneadoParaModal}
+                />
                 <EditModal
                     visible={edAlimento !== null} // The modal is visible when edAlimento has a value
                     onClose={() => {
@@ -791,252 +824,267 @@ const manipResult = await ImageManipulator.manipulateAsync(
                     onSubmit={datosAlimento}
                     IdStock={consAlimento}
                 />
-                           
-                           </View>
+            </View>
         </ErrorBoundary>
     );
 };
 
 const styles = StyleSheet.create({
-    minusButton: {
-        marginLeft: 15, // Espacio para separar del texto
-    },
-    permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0', // A light background
-    padding: 20,
-},
-requestPermissionButton: {
-    marginTop: 20,
-    backgroundColor: '#40632F', // Your primary button color
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-},
-requestPermissionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-},
-  loadingMessage: { // Style for the loading indicator
-        backgroundColor: '#cce5ff', // Light blue
-        borderColor: '#b8daff',
-        borderWidth: 1,
-        borderRadius: 5,
-        padding: 10,
-        marginBottom: 15,
-        textAlign: 'center',
-        color: '#004085', // Dark blue
-    },
-  fullScreen: {
+    container: {
         flex: 1,
-        backgroundColor: 'black',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: '#F0F8F0', // Light green background
+        padding: 20,
+        paddingTop: SCREEN_HEIGHT * 0.05, // Adjust padding based on header height
     },
-    cameraFull: {
+    fullScreenBox: {
         flex: 1,
         width: '100%',
     },
-    cameraControls: {
-        position: 'absolute',
-        bottom: SCREEN_HEIGHT * 0.05,
-        left: 0,
-        right: 0,
+    scrollContent: {
+        paddingBottom: 20, // Add padding to the bottom of the scroll view
+    },
+    message: {
+        fontSize: 16,
+        color: '#4CAF50', // Green for success messages
+        textAlign: 'center',
+        marginBottom: 10,
+        fontWeight: 'bold',
+    },
+    errorMessage: {
+        fontSize: 16,
+        color: '#D32F2F', // Red for error messages
+        textAlign: 'center',
+        marginBottom: 10,
+        fontWeight: 'bold',
+    },
+    loadingMessage: {
+        fontSize: 16,
+        color: '#1976D2', // Blue for loading messages
+        textAlign: 'center',
+        marginBottom: 10,
+        fontWeight: 'bold',
+    },
+    searchInput: {
+        backgroundColor: '#E8F5E9', // Lighter green for search input
+        borderColor: '#8CA966',
+        borderWidth: 1,
+        borderRadius: 25, // More rounded corners
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        marginBottom: 20,
+        fontSize: 16,
+        color: '#333',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    noFoodMessage: {
+        fontSize: 18,
+        color: '#555',
+        textAlign: 'center',
+        marginTop: 50,
+        fontStyle: 'italic',
+    },
+    // --- Food Card Styles ---
+    foodCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF', // White card background
+        borderRadius: 15,
+        padding: 15,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+        borderLeftWidth: 8,
+        borderColor: '#A8D8B6', // Light green border
+    },
+    foodImage: {
+        width: 70,
+        height: 70,
+        borderRadius: 35, // Circular image
+        marginRight: 15,
+        borderWidth: 2,
+        borderColor: '#8CA966', // Green border for image
+        resizeMode: 'cover',
+    },
+    foodDetails: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    foodName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#388E3C', // Darker green for food name
+        marginBottom: 4,
+    },
+    foodQuantity: {
+        fontSize: 15,
+        color: '#66BB6A', // Medium green for quantity
+        marginBottom: 2,
+    },
+    foodExpiry: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    safeText: {
+        color: '#4CAF50', // Green for fresh/good
+    },
+    expiringSoonText: {
+        color: '#FF9800', // Orange for expiring soon
+    },
+    expiredText: {
+        color: '#D32F2F', // Red for expired
+        fontWeight: 'bold',
+    },
+    defaultExpiryText: { // Added for 'No definida' cases
+        color: '#757575', // Grey/neutral for undefined
+    },
+    foodActions: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        marginLeft: 10,
+    },
+    actionButton: {
+        padding: 5,
+        marginTop: 5,
+        borderRadius: 8,
+    },
+    // --- Bottom Action Buttons ---
+    bottomButtonsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        paddingHorizontal: SCREEN_WIDTH * 0.05,
+        paddingTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+        backgroundColor: '#F0F8F0', // Match container background
+    },
+    addButton: {
+        backgroundColor: '#4CAF50', // Green
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    scanButton: {
+        backgroundColor: '#8BC34A', // Lighter green
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    photoButton: {
+        backgroundColor: '#689F38', // Even lighter green
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+
+    // --- General Camera/Scanner Styles (kept from original) ---
+    fullScreen: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'black',
+    },
+    cameraFull: {
+        width: '100%',
+        height: '100%',
+    },
+    cameraControls: {
+        position: 'absolute',
+        bottom: 40,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+        paddingHorizontal: 20,
     },
     captureButton: {
-        backgroundColor: '#fff',
-        borderRadius: (SCREEN_WIDTH * 0.15) / 2, // Larger circle
-        padding: SCREEN_WIDTH * 0.04,
-        borderWidth: 2,
-        borderColor: '#ddd',
-        width: SCREEN_WIDTH * 0.15,
-        height: SCREEN_WIDTH * 0.15,
-        justifyContent: 'center',
+        backgroundColor: '#FFF',
+        padding: 15,
+        borderRadius: 50,
+        width: 100,
         alignItems: 'center',
     },
     captureButtonText: {
-        fontSize: SCREEN_WIDTH * 0.035,
-        color: '#333',
+        fontSize: 16,
+        color: 'black',
         fontWeight: 'bold',
-        textAlign: 'center',
     },
     closeButton: {
-        backgroundColor: 'rgba(0,0,0,0.6)', // Darker background
-        borderRadius: SCREEN_WIDTH * 0.02,
-        padding: SCREEN_WIDTH * 0.025,
+        position: 'absolute',
+        top: 60,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 10,
+        borderRadius: 5,
     },
     closeText: {
+        color: 'white',
+        fontSize: 16,
+    },
+    permissionContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    permissionText: {
+        fontSize: 18,
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#333',
+    },
+    requestPermissionButton: {
+        backgroundColor: '#4CAF50',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+    },
+    requestPermissionButtonText: {
         color: '#fff',
-        fontSize: SCREEN_WIDTH * 0.04,
-    },
-  scanAgainButtonFull: {
-        position: 'absolute',
-        bottom: SCREEN_HEIGHT * 0.15, // Elevated to avoid conflict with controls
-        alignSelf: 'center',
-        backgroundColor: 'rgba(0, 122, 255, 0.8)', // More solid blue
-        paddingHorizontal: SCREEN_WIDTH * 0.05,
-        paddingVertical: SCREEN_WIDTH * 0.025,
-        borderRadius: SCREEN_WIDTH * 0.05,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3,
-        elevation: 5,
-    },
-    scanAgainText: {
-        color: 'white',
+        fontSize: 16,
         fontWeight: 'bold',
-        fontSize: SCREEN_WIDTH * 0.045,
     },
-  permissionText: {
-        color: 'white',
-        fontSize: SCREEN_WIDTH * 0.05,
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFEBEE',
+    },
+    errorText: {
+        color: '#D32F2F',
+        fontSize: 18,
         textAlign: 'center',
+        marginHorizontal: 20,
     },
-  errorMessage: { // Style for API error messages
-        backgroundColor: '#f8d7da', // Light red
-        borderColor: '#f5c6cb',
-        borderWidth: 1,
-        borderRadius: 5,
-        padding: 10,
-        marginBottom: 15,
-        textAlign: 'center',
-        color: '#721c24', // Dark red
-    },
-  message: {
-    color: '#d9534f', // rojo para errores
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-  },
-  container: {
-    flex: 1,
-    marginTop: SCREEN_HEIGHT * 0.04,
-    padding: SCREEN_WIDTH * 0.05,
-  },
-  fullScreenBox: {
-    flex: 1,
-    backgroundColor: '#CAE2B5',
-    borderRadius: SCREEN_WIDTH * 0.05,
-    borderWidth: SCREEN_WIDTH * 0.005,
-    borderColor: '#8CA966',
-  },
-  scrollContent: {
-    padding: SCREEN_WIDTH * 0.05,
-    paddingBottom: SCREEN_HEIGHT * 0.05,
-  },
-  nuevoIngrediente: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#CAE2B5',
-    borderRadius: SCREEN_WIDTH * 0.025,
-    padding: SCREEN_WIDTH * 0.025,
-    marginBottom: SCREEN_HEIGHT * 0.005,
-  },
-  defaultImage: {
-    width: SCREEN_WIDTH * 0.08,
-    height: SCREEN_WIDTH * 0.08,
-    marginRight: SCREEN_WIDTH * 0.025,
-  },
-  trashImage: {
-    width: SCREEN_WIDTH * 0.042,
-    height: SCREEN_WIDTH * 0.042,
-    marginLeft: SCREEN_WIDTH * 0.025,
-  },
-  textWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  textWrappers: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  txtIngrediente: {
-    backgroundColor: 'white',
-    color: '#000000',
-    fontSize: SCREEN_WIDTH * 0.032,
-    paddingHorizontal: SCREEN_WIDTH * 0.02,
-    paddingVertical: SCREEN_HEIGHT * 0.005,
-    borderRadius: SCREEN_WIDTH * 0.025,
-    marginBottom: SCREEN_HEIGHT * 0.001,
-  },
-  porciones: {
-    backgroundColor: '#E0E0E0',
-    color: '#000000',
-    fontSize: SCREEN_WIDTH * 0.018,
-    paddingHorizontal: SCREEN_WIDTH * 0.012,
-    paddingVertical: SCREEN_HEIGHT * 0.003,
-    borderRadius: SCREEN_WIDTH * 0.012,
-    alignSelf: 'flex-start',
-  },
-  bottomIconsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SCREEN_WIDTH * 0.05,
-    marginTop: SCREEN_HEIGHT * 0.01,
-    marginBottom: SCREEN_HEIGHT * 0.03,
-  },
-  leftIcons: {
-    flexDirection: 'row',
-    marginLeft: -SCREEN_WIDTH * 0.02,
-  },
-  iconButton: {
-    backgroundColor: '#CEDFAD',
-    padding: SCREEN_WIDTH * 0.025,
-    borderRadius: SCREEN_WIDTH * 0.012,
-    marginRight: SCREEN_WIDTH * 0.025,
-  },
-  cameraImage: {
-    width: SCREEN_WIDTH * 0.08,
-    height: SCREEN_WIDTH * 0.08,
-  },
-  scannerImage: {
-    width: SCREEN_WIDTH * 0.08,
-    height: SCREEN_WIDTH * 0.08,
-  },
-  addButton: {
-    backgroundColor: '#CEDFAD',
-    padding: SCREEN_WIDTH * 0.025,
-    borderRadius: SCREEN_WIDTH * 0.012,
-    marginRight: -SCREEN_WIDTH * 0.02,
-  },
-  addIcon: {
-    width: SCREEN_WIDTH * 0.08,
-    height: SCREEN_WIDTH * 0.08,
-  },
-  // --- ELIMINADO: addButtonFull ---
-  // Este estilo ya no es necesario porque el botón de añadir se eliminó de la vista del escáner.
-  /*
-  addButtonFull: {
-    position: 'absolute',
-    bottom: SCREEN_HEIGHT * 0.03,
-    alignSelf: 'center',
-    backgroundColor: '#CEDFAD',
-    padding: SCREEN_WIDTH * 0.025,
-    borderRadius: SCREEN_WIDTH * 0.012,
-  },
-  */
 });
 
+// Styles for the header (assuming sHead is defined elsewhere or will be here)
 const sHead = StyleSheet.create({
   headerButtonsContainer: {
     flexDirection: 'row',

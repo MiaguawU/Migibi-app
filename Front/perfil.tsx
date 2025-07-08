@@ -154,22 +154,13 @@ export default function ProfileScreen() {
             <Text style={styles.viewButtonText}>Ver</Text>
           </TouchableOpacity>
         </View>
-        <WhiteSpace size="lg" />
-
-        <View style={styles.infoContainer}>
-          <Text style={styles.label}>Cantidad de personas que viven conmigo</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe aquí..."
-            placeholderTextColor="#888"
-            keyboardType="numeric"
-            value={formData.Cohabitantes}
-            editable={false}
-          />
+         <View style={styles.infoContainer}>
+          <Text style={styles.label}>Cambiar Contraseña</Text>
+          <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('Perfil')}>
+            <Text style={styles.viewButtonText}>Ver</Text>
+          </TouchableOpacity>
         </View>
-
-      
-
+        <WhiteSpace size="lg" />
       </View>
     </View>
   );
